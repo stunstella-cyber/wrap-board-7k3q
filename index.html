@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>자문형 랩 수익률 현황</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap">
+<style>
+
+/* Layout: 상단 고정 컨트롤 바 + 요약 띠 + 5개 섹션(기간별 수익률 / 벤치마크 대비 / 9.15→9.30 변화 / 운용 규모 / 전체 표). 라이트 단일 테마. */
+:root{
+  --bg:#f2f4f6; --surface:#ffffff; --ink:#101c28; --ink2:#4a5866; --muted:#8693a0; --line:#dde3e9; --line2:#eef1f4;
+  --accent:#17324d; --accent-soft:#e7edf3;
+  --up:#c62f2f; --up-soft:rgba(198,47,47,.13); --down:#1f5fb8; --down-soft:rgba(31,95,184,.13);
+  --g1:#17324d; --g2:#3d6c9b; --g3:#86abd0; --g4:#c5d7e8;
+  --ring:#e0a100;
+  --font:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:14px;line-height:1.5;margin:0;padding-inline:16px;padding-block:0 48px}
+.wrap{max-width:1120px;margin:0 auto}
+.num{font-variant-numeric:tabular-nums}
+h1{font-size:22px;line-height:1.3;margin:0;font-weight:700;letter-spacing:-.01em;text-wrap:balance}
+h2{font-size:16px;margin:0;font-weight:700;letter-spacing:-.005em}
+.sub{color:var(--ink2);font-size:13px}
+header.top{padding-block:24px 14px;display:flex;flex-wrap:wrap;gap:8px 16px;align-items:baseline;justify-content:space-between}
+.badge{font-size:11px;font-weight:600;letter-spacing:.04em;color:#8a2b2b;border:1px solid #e3b9b9;background:#fbeeee;border-radius:3px;padding:1px 6px;margin-left:8px;vertical-align:middle}
+.bar-ctl{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:8px;display:flex;flex-wrap:wrap;gap:8px 20px;align-items:center;border-bottom:1px solid var(--line)}
+.ctl{display:flex;align-items:center;gap:8px;min-width:0}
+.ctl>span{font-size:12px;color:var(--muted);white-space:nowrap}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;background:var(--surface);overflow:hidden;flex-wrap:nowrap}
+.seg button{font:inherit;font-size:13px;border:0;background:transparent;color:var(--ink2);padding:5px 11px;cursor:pointer;border-right:1px solid var(--line2);white-space:nowrap}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--accent);color:#fff}
+.seg button:focus-visible{outline:2px solid var(--ring);outline-offset:-2px}
+.scrollx{overflow-x:auto;max-width:100%}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));margin-block:18px 8px;background:var(--surface);border:1px solid var(--line);border-radius:8px}
+.kpi{padding:14px 16px;border-right:1px solid var(--line2);min-width:0}
+.kpi:last-child{border-right:0}
+.kpi .l{font-size:12px;color:var(--muted)}
+.kpi .v{font-size:24px;font-weight:700;letter-spacing:-.02em;line-height:1.25;margin-top:2px}
+.kpi .v small{font-size:13px;font-weight:500;color:var(--ink2);margin-left:2px}
+.kpi .n{font-size:12px;color:var(--ink2);margin-top:2px;overflow-wrap:anywhere}
+section{background:var(--surface);border:1px solid var(--line);border-radius:8px;margin-top:16px;padding:18px 18px 14px}
+.sec-h{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:8px 16px;margin-bottom:12px}
+.sec-h p{margin:2px 0 0;font-size:12.5px;color:var(--ink2);max-width:62ch}
+.legend{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:12px;color:var(--ink2);margin-bottom:6px;align-items:center}
+.legend i{display:inline-block;vertical-align:middle;margin-right:5px}
+.lg-up{width:10px;height:10px;background:var(--up);border-radius:2px}
+.lg-dn{width:10px;height:10px;background:var(--down);border-radius:2px}
+.lg-bm{width:9px;height:9px;background:var(--ink);transform:rotate(45deg)}
+.lg-o{width:9px;height:9px;border:2px solid var(--ink2);border-radius:50%}
+.lg-f{width:9px;height:9px;background:var(--ink);border-radius:50%}
+.grp{font-size:11.5px;font-weight:600;letter-spacing:.06em;color:var(--accent);padding:12px 0 4px;border-bottom:1px solid var(--line);margin-bottom:2px}
+.row{display:grid;grid-template-columns:200px minmax(0,1fr) 84px;align-items:center;gap:12px;min-height:28px;padding-block:3px;border-radius:4px}
+.row:hover{background:#f6f8fa}
+.row .nm{font-size:13px;line-height:1.3;min-width:0;overflow-wrap:anywhere}
+.row .nm small{display:block;color:var(--muted);font-size:11px}
+.trk{position:relative;height:16px;min-width:0}
+.trk .zero{position:absolute;top:-4px;bottom:-4px;width:1px;background:var(--muted);opacity:.6}
+.trk .b{position:absolute;top:2px;height:12px}
+.trk .b.up{background:var(--up);border-radius:0 3px 3px 0}
+.trk .b.dn{background:var(--down);border-radius:3px 0 0 3px}
+.trk .bm{position:absolute;top:3px;width:9px;height:9px;margin-left:-4.5px;background:var(--ink);transform:rotate(45deg);border:1.5px solid var(--surface);box-sizing:content-box}
+.trk .ln{position:absolute;top:7px;height:2px;background:var(--muted);opacity:.7}
+.trk .d{position:absolute;top:3px;width:10px;height:10px;margin-left:-5px;border-radius:50%;box-sizing:border-box}
+.trk .d.o{border:2px solid var(--ink2);background:var(--surface)}
+.trk .d.f{background:var(--ink);border:2px solid var(--surface);box-sizing:content-box;margin-left:-7px;top:1px;width:10px;height:10px}
+.val{font-size:13px;font-weight:600;text-align:right;white-space:nowrap}
+.up{color:var(--up)} .dn{color:var(--down)} .na{color:var(--muted);font-weight:400}
+.hl{box-shadow:0 0 0 2px var(--ring);border-radius:4px}
+.scale{display:grid;grid-template-columns:200px minmax(0,1fr) 84px;gap:12px;font-size:11px;color:var(--muted);margin-bottom:2px}
+.scale .ax{position:relative;height:14px}
+.scale .ax span{position:absolute;transform:translateX(-50%);white-space:nowrap}
+/* composition */
+.stack{display:flex;gap:2px;height:30px;margin-block:4px 8px}
+.stack>div{min-width:3px;border-radius:3px}
+.glist{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px 16px;margin-bottom:10px}
+.gi{font-size:12.5px;min-width:0}
+.gi b{display:block;font-size:15px}
+.gi i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:6px}
+.crow{display:grid;grid-template-columns:200px minmax(0,1fr) 150px 54px;align-items:center;gap:12px;min-height:28px;padding-block:3px}
+.crow .trk .b{background:var(--accent);border-radius:0 3px 3px 0;left:0}
+.crow .sh{font-size:13px;text-align:right;white-space:nowrap}
+.crow .ct{font-size:12px;color:var(--ink2);text-align:right;white-space:nowrap}
+/* table */
+table{border-collapse:separate;border-spacing:0;width:100%;font-size:12.5px}
+th,td{padding:6px 8px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--line2)}
+th{font-weight:600;color:var(--ink2);background:#f7f9fb;border-bottom:1px solid var(--line);position:sticky;top:0}
+th:first-child,td:first-child{text-align:left;position:sticky;left:0;background:var(--surface);z-index:1;box-shadow:1px 0 0 var(--line2);min-width:230px;white-space:normal}
+th:first-child{background:#f7f9fb;z-index:2}
+td.l,th.l{text-align:left}
+tr.bmr td{background:#f3f6f9;color:var(--ink2);font-size:12px}
+tr.bmr td:first-child{background:#f3f6f9}
+tr.gh td{background:var(--accent-soft);color:var(--accent);font-weight:600;font-size:11.5px;letter-spacing:.05em;text-align:left;padding-block:4px}
+tr.gh td:first-child{background:var(--accent-soft)}
+td.c{font-weight:500}
+td.c.hl2{outline:2px solid var(--ring);outline-offset:-2px;border-radius:4px}
+.note{font-size:12px;color:var(--ink2);margin:12px 0 0;max-width:90ch}
+.notes{margin-top:16px;padding:14px 18px;font-size:12px;color:var(--ink2);border:1px dashed var(--line);border-radius:8px}
+.notes ul{margin:6px 0 0;padding-left:18px}
+.notes li{margin-block:2px}
+#tip{position:fixed;z-index:20;pointer-events:none;background:var(--ink);color:#fff;font-size:12px;line-height:1.45;padding:7px 10px;border-radius:5px;max-width:260px;display:none;box-shadow:0 4px 14px rgba(16,28,40,.25)}
+#tip b{font-weight:600}
+@media (max-width:760px){
+  .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .kpi:nth-child(2){border-right:0}
+  .kpi:nth-child(-n+2){border-bottom:1px solid var(--line2)}
+  .row,.scale{grid-template-columns:minmax(0,1fr) 78px;row-gap:2px}
+  .row .nm{grid-column:1 / -1}
+  .row .trk{grid-column:1}
+  .row .val{grid-column:2}
+  .scale>div:first-child{display:none}
+  .scale{grid-template-columns:minmax(0,1fr) 78px}
+  .crow{grid-template-columns:minmax(0,1fr) 120px;}
+  .crow .nm{grid-column:1 / -1}
+  .crow .ct{display:none}
+  .glist{grid-template-columns:repeat(2,minmax(0,1fr))}
+  section{padding-inline:14px}
+}
+@media (prefers-reduced-motion:no-preference){.trk .b{transition:width .25s,left .25s}}
+
+/* ---- 추가: 탭, 판정 pill, 스코어카드, 라인차트 ---- */
+:root{
+  --v-top-bg:#17324d; --v-top-fg:#ffffff;
+  --v-good-fg:#17324d; --v-good-bd:#9db4cb;
+  --v-vol-bg:#fdf0d8; --v-vol-fg:#8a5200;
+  --v-def-bg:#dcf2ee; --v-def-fg:#0b6a60;
+  --v-mid-bg:#eceff2; --v-mid-fg:#4f5b67;
+  --v-bad-bg:#f4e1ec; --v-bad-fg:#8a2b58;
+  --v-obs-fg:#66717d;
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100; --s5:#e87ba4; --s6:#008300;
+}
+.tabs{display:flex;gap:4px;border-bottom:2px solid var(--line);margin-top:6px}
+.tabs button{font:inherit;font-size:15px;font-weight:600;background:transparent;border:0;color:var(--ink2);padding:10px 16px;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;white-space:nowrap}
+.tabs button[aria-selected="true"]{color:var(--accent);border-bottom-color:var(--accent)}
+.tabs button:focus-visible{outline:2px solid var(--ring);outline-offset:-2px}
+.pane[hidden]{display:none!important}
+.pill{display:inline-block;font-size:11.5px;font-weight:600;line-height:1;padding:3px 7px;border-radius:10px;white-space:nowrap;letter-spacing:.01em}
+.pill.v-우수{background:var(--v-top-bg);color:var(--v-top-fg)}
+.pill.v-양호{background:transparent;color:var(--v-good-fg);box-shadow:inset 0 0 0 1px var(--v-good-bd)}
+.pill.v-고변동{background:var(--v-vol-bg);color:var(--v-vol-fg)}
+.pill.v-방어형{background:var(--v-def-bg);color:var(--v-def-fg)}
+.pill.v-보통{background:var(--v-mid-bg);color:var(--v-mid-fg)}
+.pill.v-부진{background:var(--v-bad-bg);color:var(--v-bad-fg)}
+.pill.v-관찰{background:transparent;color:var(--v-obs-fg);box-shadow:inset 0 0 0 1px var(--line)}
+.tag{display:inline-block;font-size:10.5px;color:var(--ink2);background:#f0f3f6;border-radius:3px;padding:1px 5px;margin-right:3px;white-space:nowrap}
+.tag.w{background:#fdf0d8;color:#8a5200}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;background:var(--surface);border:1px solid var(--line);border-radius:8px;margin-block:16px 0}
+.memo{margin-top:16px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 28px}
+.memo h3{font-size:13px;margin:0 0 6px;color:var(--accent);letter-spacing:.02em}
+.memo ul{margin:0 0 14px;padding-left:18px;font-size:13px;color:var(--ink)}
+.memo li{margin-block:4px}
+.memo li b{font-weight:600}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font:inherit;font-size:12.5px;border:1px solid var(--line);background:var(--surface);color:var(--ink2);border-radius:14px;padding:3px 10px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.chip[aria-pressed="true"]{border-color:var(--accent);color:var(--accent);background:var(--accent-soft);font-weight:600}
+.chip[disabled]{opacity:.45;cursor:not-allowed}
+.chip i{width:10px;height:10px;border-radius:50%;display:inline-block}
+.chip:focus-visible{outline:2px solid var(--ring);outline-offset:1px}
+.mcell{display:inline-block;min-width:46px;text-align:center;padding:3px 4px;border-radius:3px;font-size:12px;font-variant-numeric:tabular-nums}
+th.sortable{cursor:pointer;user-select:none}
+th.sortable:hover{color:var(--ink)}
+th[aria-sort="ascending"]::after{content:" ▲";font-size:9px}
+th[aria-sort="descending"]::after{content:" ▼";font-size:9px}
+td.nm2{white-space:normal;min-width:210px}
+td.nm2 small{display:block;color:var(--muted);font-size:11px}
+.rk{display:inline-block;min-width:20px;color:var(--muted);font-size:11px;font-variant-numeric:tabular-nums}
+svg.line{width:100%;height:auto;display:block;overflow:visible}
+svg.line text{font-family:var(--font);fill:var(--ink2);font-size:11px}
+svg.line .gl{stroke:var(--line2);stroke-width:1}
+svg.line .ax{stroke:var(--muted);stroke-width:1}
+svg.line .lbl{font-size:11.5px;font-weight:600}
+.spark{display:block}
+.legend2{display:flex;flex-wrap:wrap;gap:10px 16px;font-size:12px;color:var(--ink2);margin:8px 0 4px;align-items:center}
+.legend2 .ls{display:inline-block;width:22px;height:0;border-top:2px solid var(--ink);vertical-align:middle;margin-right:6px}
+.legend2 .ls.k{border-top-style:dashed}
+.legend2 .ls.s{border-top-style:dotted}
+.heatw td.c{min-width:74px}
+.fine{font-size:11.5px;color:var(--muted)}
+@media (max-width:760px){
+  .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .memo{grid-template-columns:minmax(0,1fr)}
+  .tabs button{padding:10px 12px;font-size:14px}
+}
+
+.chg-ctl{display:flex;flex-wrap:wrap;gap:8px 20px;margin-bottom:10px}
+.chg-sum{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+.chg-sum span{font-size:13px;padding:4px 10px;border-radius:999px;background:var(--surface,#fff);border:1px solid #d9dde3}
+.chg-t td.nm2 small{display:block;color:var(--muted);font-size:11px}
+.chg-flag{display:inline-block;font-size:12px;font-weight:700;padding:2px 8px;border-radius:999px;white-space:nowrap}
+.chg-flag.u{background:rgba(198,47,47,.12);color:#b42323}
+.chg-flag.d{background:rgba(31,95,184,.12);color:#1b56a6}
+.chg-warn{color:#8a6100;font-size:11px;display:block}
+.chg-badge{display:inline-block;margin-left:6px;font-size:11px;font-weight:700;padding:1px 6px;border-radius:999px;vertical-align:middle}
+.chg-badge.u{background:rgba(198,47,47,.12);color:#b42323}
+.chg-badge.d{background:rgba(31,95,184,.12);color:#1b56a6}
+
+.chg-h{font-weight:700;font-size:15px;margin:22px 0 8px}
+.chg-h small{font-weight:400;color:var(--muted);font-size:12px;margin-left:8px}
+.chgk{margin-bottom:6px}
+.row.dim{opacity:.42}
+.row.dim:hover{opacity:.9}
+.slopes{display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:14px 22px}
+.slope{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px}
+.sl-t{font-size:11.5px;fill:var(--ink2)} .sl-t.f{font-weight:700;fill:var(--ink)} .sl-n{fill:var(--muted);font-size:10px} .sl-h{font-size:11px;font-weight:700;fill:var(--muted)}
+.chg-hm th.cur{background:var(--accent-soft)}
+.chg-hm tr.chg-hit td.l{font-weight:700;box-shadow:inset 3px 0 0 var(--accent)}
+
+.row.chg-row{background:rgba(255,214,102,.14);border-radius:6px}
+
+.chg-badge.ty-a{background:#e7edf3;color:#17324d}
+.chg-badge.ty-w{background:#e1f2e8;color:#1c6b3b}
+
+.chg-badge.ty-o{background:#fff3d6;color:#8a6100}
+
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="top">
+  <div>
+    <h1>메리츠 자문형 랩 수익률 현황</h1>
+    <div class="sub">본사형 랩 5개 시점(06.30~09.30)과 자문사 일임계약 6개 시점(06.30~09.30)을 모았습니다.</div>
+  </div>
+  <div class="sub">수익률 %, 평가금액 억원. 빨강은 상승, 파랑은 하락.</div>
+</header>
+
+<div class="tabs" role="tablist" aria-label="화면 선택">
+  <button type="button" role="tab" id="tab-uni" data-k="uni" aria-selected="false">일임+랩 통합 비교</button>
+  <button type="button" role="tab" id="tab-adv" data-k="adv" aria-selected="false">자문사 일임계약 비교</button>
+  <button type="button" role="tab" id="tab-wrap" data-k="wrap" aria-selected="false">메리츠 본사형 랩</button>
+</div>
+
+<!-- ================= 통합 ================= -->
+<div class="pane" id="pane-uni" role="tabpanel" aria-labelledby="tab-uni" hidden>
+  <div class="bar-ctl" role="group" aria-label="통합 보기 설정">
+    <div class="ctl"><span>시장·구분</span><div class="seg" id="uMk"></div></div>
+    <div class="ctl"><span>비교 시점</span><div class="seg" id="uSnap"></div></div>
+    <div class="ctl"><span>기간</span><div class="seg" id="uPeriod"></div></div>
+    <div class="ctl"><span>유형</span><div class="seg" id="uType"></div></div>
+    <div class="ctl"><span>기준</span><div class="seg" id="uMode"></div></div>
+  </div>
+  <div class="kpis" id="uKpi"></div>
+  <section id="uRankS">
+    <div class="sec-h"><div><h2 id="uRankT">순위</h2><p id="uRankP"></p></div></div>
+    <div class="legend"><span><span class="chg-badge ty-a">일임</span> 자문사 일임계약</span><span><span class="chg-badge ty-w">랩</span> 본사형 랩</span><span><i class="lg-bm"></i>해당 시장 BM</span></div>
+    <div id="uRankC"></div>
+  </section>
+  <section id="uSlopeS">
+    <div class="sec-h"><div><h2>순위 이동</h2><p id="uSlopeP"></p></div></div>
+    <div id="uSlopeC"></div>
+  </section>
+  <div class="note">일임과 랩은 표의 기준일이 달라 두 곳 모두 있는 06.30, 08.31, 09.15, 09.30만 비교합니다. 일임은 운용사·전략 단위, 랩은 상품 단위입니다. 순위 기준 BM은 각 표에 적힌 시장별 BM이며, 혼합(일임)과 글로벌(랩)은 같은 BM(코스피·S&P500 50:50)이라 한 묶음으로 봤습니다. 대표계좌가 바뀐 상품은 값 비교에 주의하세요.</div>
+</div>
+
+<!-- ================= 자문사 ================= -->
+<div class="pane" id="pane-adv" role="tabpanel" aria-labelledby="tab-adv" hidden>
+  <div class="kpis" id="aStats" style="margin-top:16px"></div>
+
+  <section id="aChg">
+    <div class="sec-h">
+      <div><h2>직전 시점 대비 변화 알림</h2><p id="aChgP"></p></div>
+    </div>
+    <div class="chg-ctl">
+      <div class="ctl"><span>비교 시점</span><div class="seg scrollx" id="aChgSnap"></div></div>
+      <div class="ctl"><span>순위 변화</span><div class="seg" id="aChgR"></div></div>
+      <div class="ctl"><span>YTD 초과 변화</span><div class="seg" id="aChgX"></div></div>
+    </div>
+    <div id="aChgC"></div>
+  </section>
+
+  <section id="aMemo">
+    <div class="sec-h"><div><h2>분석 메모</h2><p>2026년 6월~9월 말 표 6장을 기준으로 정리했습니다. 관측 기간이 짧아 확정적인 평가가 아니라 점검용 정리입니다.</p></div></div>
+    <div class="memo">
+      <div>
+        <h3>잘한 쪽</h3>
+        <ul>
+          <li><b>디에스(기존_Dynamic)</b>: 월간 BM 초과 3/4, KOSPI가 7월에 22.2% 빠질 때 +16.8%p 방어, YTD +40.2%p, 누적 BM 대비 +219.1%p. 다만 9월은 −7.7%p로 BM에 못 미쳤고 12M 초과는 −0.7%p까지 좁혀졌습니다(대표계좌 변경 전후 비교 주의).</li>
+          <li><b>캄투자일임(국내)</b>: 월 회전율 평균 5.5%의 저회전, YTD +32.0%p, 12M +34.6%p, 월간 3/4 초과. 다만 누적 1,127.3%로 한 종목 집중도와 변동성은 확인이 필요합니다. 미국 계약은 YTD +117.3%p이지만 7월에 −26.4%p였습니다.</li>
+          <li><b>토러스(기존)</b>: 2018년 개시, YTD +15.5%p, 12M +35.8%p. 월간 승률은 2/4로 평범해서 꾸준한 코어 후보입니다.</li>
+          <li><b>디에스(Core Growth)</b>: 월간 3/4, YTD +22.4%p, 월 회전율 평균 10%. 09.15 표부터 대표계좌가 바뀌어 누적은 이어 비교하지 마세요.</li>
+          <li><b>파인투자</b>: 7월 +8.0%p, 8월 +8.5%p로 하락장 방어는 좋았지만 9월 −6.7%p, YTD는 BM보다 24.0%p 낮습니다. 방어형입니다.</li>
+        </ul>
+        <h3>아쉬운 쪽</h3>
+        <ul>
+          <li><b>트로이투자</b>: 월간 1/4, YTD −47.4%p, 월 회전율 평균 107%. <b>웰컴자산운용</b>(YTD −35.9%p, 회전율 110%), <b>비전자산운용</b>(−31.3%p), <b>디에스(Value up)</b>(−29.5%p), <b>티알에스자산</b>(−20.9%p), <b>밸류시스템</b>(월간 0/4, −14.2%p)도 BM에 못 미쳤습니다. <b>씨앗자산</b>은 YTD −47.4%p이지만 월간 3/4 초과라 방어형으로 분류됩니다.</li>
+          <li><b>에픽투자일임</b> 3개 계약: 월 회전율 평균이 국내 634%, 혼합 738%로 매우 높고, 09.30 누적은 국내 −2.9%, 미국 −31.0%, 혼합 −30.5%입니다. 이력이 짧아 판정은 관찰입니다.</li>
+          <li>관찰 대상: <b>스노우볼</b>(YTD +140.0%, 12M +307.0%, 표에 2개 시점만 등장), <b>유니스토리</b>(YTD +70.0%, BM 대비 +7.7%p), <b>원자산</b>(개시 8개월, 월간 4/4 BM 초과).</li>
+        </ul>
+      </div>
+      <div>
+        <h3>시사점</h3>
+        <ul>
+          <li><b>BM을 이긴 비율이 낮습니다.</b> 월간 승률은 49%(69/140건), 09.30 기준 YTD가 BM을 넘은 곳은 26개 중 12개입니다. 국내는 KOSPI YTD +62.3%에 비해 자문사 중앙값이 +49.8%이고 BM을 넘은 곳은 22개 중 8개입니다.</li>
+          <li><b>성과가 이어지지 않았습니다.</b> BM 초과 순위의 상관은 6→7월 −0.34, 7→8월 +0.45, 8→9월 +0.05로 일정한 흐름이 없습니다. 최근 몇 달 수익률만 보고 고르는 것은 위험합니다.</li>
+          <li><b>회전율이 낮은 쪽이 낫습니다.</b> 월 회전율 30% 미만 7종의 YTD 초과 평균은 +30.9%p, 100% 이상 3종은 −24.4%p입니다. 표본이 작아 방향만 참고하세요.</li>
+          <li><b>미국 전략의 BM이 맞는지 점검이 필요합니다.</b> 7월에 S&P500이 −0.1%였는데 미국 계약 다수가 −16%~−31%였습니다. 실제 운용 성격이 BM과 다를 수 있습니다.</li>
+          <li><b>고객 제안은 BM 대비, 12M, 회전율, 이력을 함께 보는 편이 안전합니다.</b> 디에스 5종과 솔루션퀀트 일부는 09.15 표부터 대표계좌(개시일)가 바뀌어 누적 수익률을 이전 표와 이어 비교할 수 없습니다.</li>
+        </ul>
+        <p class="fine">투자 판단을 대신하지 않는 사실 정리입니다. 판정은 아래 스코어카드의 규칙으로 기계적으로 매겼습니다.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="aScore">
+    <div class="sec-h">
+      <div><h2>운용사 스코어카드</h2><p>월별 BM 초과는 6월·7월·8월 월간 수익률과 9월 한 달 수익률에서 해당 시장 BM을 뺀 값(%p)입니다. 열 이름을 누르면 정렬됩니다.</p></div>
+    </div>
+    <div class="legend" style="gap:8px 14px">
+      <div class="chips" id="aVerdict" role="group" aria-label="판정 필터"></div>
+      <div class="seg" id="aMk2"></div>
+    </div>
+    <div class="scrollx" id="aScoreT"></div>
+    <div class="note" id="aScoreNote"></div>
+  </section>
+
+  <section id="aRank">
+    <div class="sec-h">
+      <div><h2 id="aRankT">기간별 수익률 순위</h2><p id="aRankP"></p></div>
+      <div class="seg" id="aMode"></div>
+    </div>
+    <div class="ctl-row" style="display:flex;flex-wrap:wrap;gap:8px 20px;margin-bottom:10px">
+      <div class="ctl"><span>기준일</span><div class="seg" id="aSnap"></div></div>
+      <div class="ctl" style="min-width:0"><span>기간</span><div class="seg scrollx" id="aPeriod"></div></div>
+      <div class="ctl"><span>시장</span><div class="seg" id="aMk"></div></div>
+    </div>
+    <div class="legend"><span><i class="lg-up"></i>상승</span><span><i class="lg-dn"></i>하락</span><span id="aBmLg"><i class="lg-bm"></i>해당 시장 BM</span></div>
+    <div id="aRankC"></div>
+  </section>
+
+  <section id="aLineS">
+    <div class="sec-h">
+      <div><h2>YTD 추이</h2><p>같은 상품의 연초 이후 수익률을 6개 시점에 걸쳐 그렸습니다. 최대 6개까지 고를 수 있습니다.</p></div>
+      <div class="seg" id="aLineM"></div>
+    </div>
+    <div class="chips" id="aChips" role="group" aria-label="운용사 선택"></div>
+    <div class="legend2" id="aLineLg"></div>
+    <div id="aLineC"></div>
+  </section>
+
+  <section id="aRaw">
+    <div class="sec-h">
+      <div><h2>원본 표</h2><p>사진의 표를 시점별로 옮긴 것입니다. 시장 구분 아래에 해당 BM 행을 두었습니다.</p></div>
+      <div class="seg" id="aRawSnap"></div>
+    </div>
+    <div class="scrollx" id="aRawT"></div>
+  </section>
+</div>
+
+<!-- ================= 본사형 ================= -->
+<div class="pane" id="pane-wrap" role="tabpanel" aria-labelledby="tab-wrap" hidden>
+  <div class="bar-ctl" role="group" aria-label="보기 설정">
+    <div class="ctl"><span>기준일</span><div class="seg scrollx" id="segSnap"></div></div>
+    <div class="ctl" style="flex:1 1 auto"><span>기간</span><div class="seg scrollx" id="segPeriod"></div></div>
+  </div>
+
+  <div class="kpis" id="kpis"></div>
+
+  <section id="wChg">
+    <div class="sec-h">
+      <div><h2>직전 시점 대비 변화 알림</h2><p id="wChgP"></p></div>
+    </div>
+    <div class="chg-ctl">
+      <div class="ctl"><span>비교 시점</span><div class="seg scrollx" id="wChgSnap"></div></div>
+      <div class="ctl"><span>순위 변화</span><div class="seg" id="wChgR"></div></div>
+      <div class="ctl"><span>YTD 초과 변화</span><div class="seg" id="wChgX"></div></div>
+    </div>
+    <div id="wChgC"></div>
+  </section>
+
+  <section id="s1">
+    <div class="sec-h">
+      <div><h2 id="s1t">기간별 수익률</h2><p id="s1p"></p></div>
+      <div class="seg" id="segSort"></div>
+    </div>
+    <div class="legend"><span><i class="lg-up"></i>상승</span><span><i class="lg-dn"></i>하락</span><span><i class="lg-bm"></i>벤치마크(구분별 BM)</span></div>
+    <div id="c1"></div>
+  </section>
+
+  <section id="s2">
+    <div class="sec-h">
+      <div><h2>누적 수익률의 벤치마크 대비</h2><p>운용 개시 이후 누적 수익률에서 해당 BM 누적 수익률을 뺀 값(%p)입니다. 개시 시점이 서로 달라 상품끼리 직접 비교하기보다 각 상품이 자기 BM을 얼마나 앞섰는지 보는 용도입니다.</p></div>
+    </div>
+    <div id="c2"></div>
+  </section>
+
+  <section id="s3">
+    <div class="sec-h">
+      <div><h2>시점별 추이</h2><p>같은 상품을 5개 기준일에 걸쳐 비교합니다. 06.30과 07.15 표 사이는 원본 자체에서 누적 수익률 연결이 어긋나는 상품이 많으니 방향만 보세요.</p></div>
+      <div class="seg" id="segMetric"></div>
+    </div>
+    <div class="scrollx" id="c3"></div>
+  </section>
+
+  <section id="s4">
+    <div class="sec-h">
+      <div><h2>운용 규모</h2><p id="s4p"></p></div>
+    </div>
+    <div class="scrollx" id="s4trend" style="margin-bottom:10px"></div>
+    <div class="stack" id="stack" role="img" aria-label="구분별 평가금액 비중"></div>
+    <div class="glist" id="glist"></div>
+    <div id="c4"></div>
+  </section>
+
+  <section id="s5">
+    <div class="sec-h">
+      <div><h2>전체 표</h2><p id="s5p"></p></div>
+      <div class="seg" id="segTab"></div>
+    </div>
+    <div class="scrollx" id="tbl"></div>
+    <div class="note" id="tblNote"></div>
+  </section>
+</div>
+
+<div class="notes">
+  <b>데이터 확인 사항</b>
+  <ul>
+    <li>자문사 09.30 표는 사진 한 장(2026.10.02 출력)에서 옮겼습니다. 표에 해외(중국) 행(플레인바닐라)과 칸서스자산(26.01.16) 계약이 없어, 이 두 곳은 09.15가 마지막 값입니다. 해외(혼합)에는 아크미스가 새로 나왔고, 혼합·6M 이상 열의 0.0은 이력이 없는 칸이라 빈칸으로 처리했습니다.</li>
+    <li>더블유자산운용과 칸서스자산은 서로 다른 운용사입니다. 09.30 표의 더블유자산운용(개시 26.01.16)은 누적 +32.6%인데, 08.31 표의 +2.2%에서 이어지지 않아(1M은 +2.4%) 이전 표와 이어 비교하지 마세요. 칸서스자산(26.01.16)은 09.30 표에 없어 09.15가 마지막 값입니다.</li>
+    <li>값은 사진으로 받은 표를 옮겨 적은 것입니다. 본사형은 06.30, 07.15, 08.31, 09.15, 09.30, 자문사는 06.30, 07.31, 08.15, 08.31, 09.15, 09.30 기준입니다. 같은 사진이 두 번씩 들어온 것은 한 번만 반영했습니다.</li>
+    <li>옮긴 뒤 월말 1M, MTD, YTD, 누적이 서로 이어지는지 시점 간 계산으로 점검했습니다. 자문사는 4건, 본사형은 06.30↔07.15 구간의 전 상품과 레그넘EMP(혁신테마형) 1건이 원본 표 자체에서 맞지 않아 그대로 두었습니다(씨앗자산과 칸서스자산 06.30→07.31, 본사형 07.15 MTD).</li>
+    <li>자문사 08.31 표는 오른쪽이 잘려 있어 미국·혼합 계약 5건(토러스자산, 디에스자산, 스마일게이트, 에픽투자일임 미국·혼합)의 BM 대비 값을 직전 표로 역산했습니다. 오차는 소수 첫째 자리 안팎이고, 에픽투자일임(혼합)은 부호까지 역산에 따랐습니다.</li>
+    <li>대표계좌(가장 빠른 계약)가 바뀌면 개시일이 달라집니다. 자문사 09.15 표에서 디에스(Focus, Value up, Rising Star, Core Growth, New Growth), 솔루션퀀트(voida 4호, voida u.s)가 그렇고, 본사형 오르비스는 09.15 표만 개시일이 25.12.03입니다. 이런 상품의 누적 수익률은 이전 표와 이어 비교하지 마세요.</li>
+    <li>판정 기준은 시장별 BM 대비입니다. 이력 6개월 미만이거나 월간 관측이 3건 미만이면 관찰, YTD 초과가 플러스이고 월간 승률 75% 이상이면 우수, 플러스이면서 7월 초과가 −15%p 이하이면 고변동, 플러스이면 양호, YTD가 마이너스이지만 월간 승률 75% 이상이면 방어형, YTD 초과가 −20%p 미만이거나 월평균 초과가 −4%p 이하이면 부진, 나머지는 보통입니다.</li>
+    <li>수익률은 대표계좌 일일 평가금액 기준, 중도 입출금을 반영한 시간가중평균수익률 방식입니다. 본사형 평가금액 단위는 표에 없어 억원으로 가정했습니다. 손으로 쓴 메모와 워터마크는 옮기지 않았습니다.</li>
+  </ul>
+</div>
+</div>
+<div id="tip" role="tooltip"></div>
+
+<script>
+const W={"asof":["2026-09-30","2026-09-15"],"periods":{"0930":["1M","3M","6M","12M","YTD"],"0915":["MTD","1M","3M","6M","12M","YTD"],"0630":["1M","3M","6M","12M","YTD"],"0715":["MTD","1M","3M","6M","12M","YTD"],"0831":["1M","3M","6M","12M","YTD"]},"groups":{"dom":"국내","cn":"해외(중국)","us":"해외(미국)","glb":"글로벌(국내+해외)"},"bm":{"dom":"KOSPI","cn":"상해종합지수","us":"S&P500","glb":"S&P500 50% + KOSPI 50%"},"wraps":[{"id":"kor_basic","group":"dom","name":"메리츠 코리아랩(기본형)","short":"코리아랩(기본형)","snaps":{"0930":{"open":"2016-04-01","ret":{"1M":-1.01,"3M":-22.15,"6M":25.72,"12M":72.49,"YTD":49.18},"cum":185.28,"vsBM":-57.32,"contracts":5,"balance":8.8},"0915":{"open":"2016-04-01","ret":{"MTD":-4.75,"1M":-5.94,"3M":-23.76,"6M":10.21,"12M":68.25,"YTD":43.53},"cum":174.49,"vsBM":-57.56},"0630":{"open":"2016-04-01","ret":{"1M":3.8,"3M":61.51,"6M":91.65,"12M":134.51,"YTD":91.65},"cum":266.5,"vsBM":-58.2,"contracts":5,"balance":11.0},"0715":{"open":"2016-04-01","ret":{"MTD":-13.75,"1M":-13.78,"3M":14.84,"6M":47.44,"12M":100.0,"YTD":62.33},"cum":210.43,"vsBM":-54.54},"0831":{"open":"2016-04-01","ret":{"1M":4.34,"3M":-18.37,"6M":6.24,"12M":86.84,"YTD":50.7},"cum":188.19,"vsBM":-53.51,"contracts":5,"balance":8.7}},"fee":{"min":"3천만원","base":2.8,"adv_bp":65,"perf":null,"adv_pay":null}},{"id":"kor_perf","group":"dom","name":"메리츠 코리아랩(성과보수형)","short":"코리아랩(성과보수형)","snaps":{"0930":{"open":"2016-04-27","ret":{"1M":-0.79,"3M":-20.48,"6M":25.79,"12M":75.05,"YTD":49.38},"cum":211.87,"vsBM":-27.41,"contracts":2,"balance":1.0},"0915":{"open":"2016-04-27","ret":{"MTD":-4.57,"1M":-5.81,"3M":-22.47,"6M":10.63,"12M":70.75,"YTD":43.69},"cum":199.99,"vsBM":-28.83},"0630":{"open":"2016-04-27","ret":{"1M":3.41,"3M":58.2,"6M":87.87,"12M":132.87,"YTD":87.87},"cum":292.23,"vsBM":-28.34,"contracts":2,"balance":1.2},"0715":{"open":"2016-04-27","ret":{"MTD":-12.81,"1M":-13.09,"3M":13.94,"6M":45.91,"12M":100.54,"YTD":61.06},"cum":236.26,"vsBM":-25.17},"0831":{"open":"2016-04-27","ret":{"1M":4.21,"3M":-17.11,"6M":6.61,"12M":88.87,"YTD":50.57},"cum":214.36,"vsBM":-24.02,"contracts":2,"balance":1.0}},"fee":{"min":"3천만원","base":1.5,"adv_bp":65,"perf":"2% 초과분의 15%","adv_pay":"60%"}},{"id":"smart","group":"dom","name":"메리츠 스마트랩(씨앗자산_성과형)","short":"스마트랩(씨앗자산_성과형)","snaps":{"0930":{"open":"2023-04-10","ret":{"1M":14.21,"3M":5.28,"6M":15.62,"12M":34.86,"YTD":26.54},"cum":154.26,"vsBM":-17.94,"contracts":6,"balance":4.1},"0915":{"open":"2023-04-10","ret":{"MTD":5.28,"1M":10.08,"3M":-15.47,"6M":-0.23,"12M":22.2,"YTD":16.64},"cum":134.37,"vsBM":-29.44},"0630":{"open":"2023-04-10","ret":{"1M":-16.45,"3M":9.81,"6M":20.18,"12M":38.08,"YTD":20.18},"cum":141.48,"vsBM":-95.93,"contracts":7,"balance":4.5},"0715":{"open":"2023-04-10","ret":{"MTD":-10.18,"1M":-22.68,"3M":-15.86,"6M":1.42,"12M":17.73,"YTD":6.69},"cum":114.37,"vsBM":-75.59},"0831":{"open":"2023-04-10","ret":{"1M":24.2,"3M":-22.99,"6M":-12.64,"12M":25.59,"YTD":10.79},"cum":122.6,"vsBM":-48.87,"contracts":7,"balance":4.1}},"fee":{"min":"3천만원","base":1.5,"adv_bp":50,"perf":"6% 초과분의 20%","adv_pay":"70%"}},{"id":"public_dom","group":"dom","name":"메리츠 더퍼블릭랩(국내형)","short":"더퍼블릭랩(국내형)","snaps":{"0930":{"open":"2025-07-02","ret":{"1M":-12.08,"3M":-6.1,"6M":10.78,"12M":6.97,"YTD":6.31},"cum":15.55,"vsBM":-106.81,"contracts":45,"balance":8.6},"0915":{"open":"2025-07-02","ret":{"MTD":-10.8,"1M":-10.1,"3M":-5.63,"6M":5.22,"12M":5.92,"YTD":7.85},"cum":17.23,"vsBM":-98.27},"0630":{"open":"2025-07-02","ret":{"1M":-1.86,"3M":17.98,"6M":13.22,"12M":null,"YTD":13.22},"cum":23.07,"vsBM":-152.57,"contracts":51,"balance":12.1},"0715":{"open":"2025-07-02","ret":{"MTD":-3.62,"1M":-6.05,"3M":0.55,"6M":7.17,"12M":10.75,"YTD":7.37},"cum":16.71,"vsBM":-120.16},"0831":{"open":"2025-07-02","ret":{"1M":11.74,"3M":4.79,"6M":6.73,"12M":20.76,"YTD":20.92},"cum":31.43,"vsBM":-90.34,"contracts":44,"balance":10.8}},"fee":{"min":"1천만원","base":1.5,"adv_bp":75,"perf":"10% 초과분의 20%","adv_pay":"50%"}},{"id":"orbis","group":"dom","name":"메리츠 오르비스 세이렌알고리즘 랩","short":"오르비스 세이렌알고리즘 랩","snaps":{"0930":{"open":"2025-10-31","ret":{"1M":6.58,"3M":-28.08,"6M":1.42,"12M":null,"YTD":52.56},"cum":26.73,"vsBM":-43.57,"contracts":95,"balance":60.7},"0915":{"open":"2025-12-03","ret":{"MTD":0.33,"1M":-3.66,"3M":-28.36,"6M":1.58,"12M":null,"YTD":43.99},"cum":53.4,"vsBM":-10.78},"0630":{"open":"2025-10-31","ret":{"1M":0.01,"3M":56.59,"6M":102.35,"12M":null,"YTD":102.35},"cum":82.15,"vsBM":-24.2,"contracts":102,"balance":115.1},"0715":{"open":"2025-10-31","ret":{"MTD":-17.16,"1M":-17.83,"3M":9.04,"6M":48.67,"12M":null,"YTD":64.95},"cum":48.49,"vsBM":-28.85},"0831":{"open":"2025-10-31","ret":{"1M":1.12,"3M":-29.05,"6M":-1.78,"12M":null,"YTD":43.54},"cum":29.21,"vsBM":-36.82,"contracts":99,"balance":62.6}},"fee":{"min":"3천만원","base":1.5,"adv_bp":75,"perf":"10% 초과분의 20%","adv_pay":"50%"}},{"id":"balance","group":"dom","name":"메리츠 밸런스 토러스랩","short":"밸런스 토러스랩","snaps":{"0930":{"open":"2026-01-26","ret":{"1M":1.78,"3M":-19.58,"6M":30.6,"12M":null,"YTD":34.1},"cum":34.1,"vsBM":-4.05,"contracts":48,"balance":37.1},"0915":{"open":"2026-01-26","ret":{"MTD":-2.69,"1M":-4.08,"3M":-22.64,"6M":16.46,"12M":null,"YTD":28.19},"cum":28.19,"vsBM":-5.7},"0630":{"open":"2026-01-26","ret":{"1M":0.86,"3M":62.4,"6M":null,"12M":null,"YTD":66.76},"cum":66.76,"vsBM":-4.49,"contracts":49,"balance":45.3},"0715":{"open":"2026-01-26","ret":{"MTD":-12.87,"1M":-13.75,"3M":16.43,"6M":null,"12M":null,"YTD":42.93},"cum":42.93,"vsBM":-4.23},"0831":{"open":"2026-01-26","ret":{"1M":3.51,"3M":-20.31,"6M":7.18,"12M":null,"YTD":31.74},"cum":31.74,"vsBM":-6.04,"contracts":50,"balance":37.5}},"fee":{"min":"5천만원","base":1.5,"adv_bp":70,"perf":"10% 초과분의 20%","adv_pay":"50%"}},{"id":"quant_dom","group":"dom","name":"메리츠 퀀터백 로테이션랩(국내형)","short":"퀀터백 로테이션랩(국내형)","snaps":{"0930":{"open":"2026-09-21","ret":{"1M":null,"3M":null,"6M":null,"12M":null,"YTD":-1.22},"cum":-1.22,"vsBM":1.33,"contracts":3,"balance":4.6}},"fee":{"min":"5천만원","base":1.5,"adv_bp":75,"perf":"10% 초과분의 20%","adv_pay":"50%"}},{"id":"cn_baekma","group":"cn","name":"메리츠 중국 백마주랩(조인에셋)","short":"중국 백마주랩(조인에셋)","snaps":{"0930":{"open":"2018-05-30","ret":{"1M":-4.67,"3M":-32.56,"6M":0.63,"12M":-10.15,"YTD":-5.41},"cum":40.83,"vsBM":14.5,"contracts":2,"balance":1.3},"0915":{"open":"2018-05-30","ret":{"MTD":-4.3,"1M":-9.71,"3M":-28.05,"6M":-5.3,"12M":-2.21,"YTD":-5.04},"cum":41.37,"vsBM":14.32},"0630":{"open":"2018-05-30","ret":{"1M":9.45,"3M":49.22,"6M":40.25,"12M":111.7,"YTD":38.04},"cum":108.82,"vsBM":74.2,"contracts":2,"balance":2.0},"0715":{"open":"2018-05-30","ret":{"MTD":-11.85,"1M":-7.79,"3M":18.24,"6M":14.53,"12M":76.6,"YTD":19.77},"cum":81.19,"vsBM":51.13},"0831":{"open":"2018-05-30","ret":{"1M":0.58,"3M":-22.56,"6M":-2.01,"12M":2.96,"YTD":-0.77},"cum":47.73,"vsBM":16.66,"contracts":2,"balance":1.4}},"fee":{"min":"5천만원","base":2.7,"adv_bp":70,"perf":null,"adv_pay":null}},{"id":"us_taurus","group":"us","name":"메리츠 글로벌 토러스랩(성과형)","short":"글로벌 토러스랩(성과형)","snaps":{"0930":{"open":"2025-01-08","ret":{"1M":5.84,"3M":-23.52,"6M":17.24,"12M":48.72,"YTD":32.62},"cum":80.548,"vsBM":52.21,"contracts":36,"balance":35.1},"0915":{"open":"2025-01-08","ret":{"MTD":-2.12,"1M":-9.75,"3M":-28.56,"6M":1.36,"12M":49.81,"YTD":22.64},"cum":66.98,"vsBM":39.46},"0630":{"open":"2025-01-08","ret":{"1M":-2.9,"3M":53.29,"6M":73.41,"12M":146.61,"YTD":72.39},"cum":136.12,"vsBM":111.6,"contracts":33,"balance":40.4},"0715":{"open":"2025-01-08","ret":{"MTD":-10.7,"1M":-12.51,"3M":9.52,"6M":30.42,"12M":105.77,"YTD":49.3},"cum":104.49,"vsBM":78.25},"0831":{"open":"2025-01-08","ret":{"1M":-2.2,"3M":-29.84,"6M":3.3,"12M":62.38,"YTD":24.56},"cum":70.61,"vsBM":41.56,"contracts":37,"balance":33.3}},"fee":{"min":"5천만원","base":1.5,"adv_bp":70,"perf":"이익금의 10%","adv_pay":"50%"}},{"id":"us_regnum_i","group":"us","name":"메리츠 글로벌 레그넘EMP랩(혁신테마형)","short":"글로벌 레그넘EMP랩(혁신테마형)","snaps":{"0930":{"open":"2024-11-22","ret":{"1M":-0.26,"3M":-18.73,"6M":6.23,"12M":15.6,"YTD":13.79},"cum":46.44,"vsBM":16.81,"contracts":47,"balance":42.5},"0915":{"open":"2024-11-22","ret":{"MTD":-4.98,"1M":-12.78,"3M":-20.59,"6M":-2.27,"12M":18.18,"YTD":8.41},"cum":39.51,"vsBM":10.73},"0630":{"open":"2024-11-22","ret":{"1M":1.41,"3M":30.72,"6M":40.04,"12M":74.84,"YTD":38.34},"cum":80.22,"vsBM":54.47,"contracts":45,"balance":51.9},"0715":{"open":"2024-11-22","ret":{"MTD":-6.81,"1M":-6.12,"3M":6.13,"6M":13.75,"12M":54.58,"YTD":26.6},"cum":64.93,"vsBM":37.44},"0831":{"open":"2024-11-22","ret":{"1M":-0.85,"3M":-17.37,"6M":2.45,"12M":30.26,"YTD":12.71},"cum":46.83,"vsBM":16.5,"contracts":47,"balance":42.8}},"fee":{"min":"1천만원","base":1.5,"adv_bp":50,"perf":"10% 초과분의 20%","adv_pay":"50%"}},{"id":"us_regnum_a","group":"us","name":"메리츠 글로벌 레그넘EMP랩(자산배분형)","short":"글로벌 레그넘EMP랩(자산배분형)","snaps":{"0930":{"open":"2025-01-08","ret":{"1M":-4.09,"3M":-15.91,"6M":6.89,"12M":15.47,"YTD":10.17},"cum":15.68,"vsBM":-10.34,"contracts":30,"balance":4.5},"0915":{"open":"2025-01-08","ret":{"MTD":-4.32,"1M":-9.5,"3M":-12.87,"6M":6.74,"12M":16.37,"YTD":9.91},"cum":15.4,"vsBM":-9.78},"0630":{"open":"2025-01-08","ret":{"1M":4.41,"3M":27.12,"6M":31.02,"12M":48.68,"YTD":31.67},"cum":37.57,"vsBM":15.33,"contracts":30,"balance":5.3},"0715":{"open":"2025-01-08","ret":{"MTD":-4.62,"1M":-1.92,"3M":9.5,"6M":16.61,"12M":37.42,"YTD":24.33},"cum":29.91,"vsBM":5.97},"0831":{"open":"2025-01-08","ret":{"1M":-0.3,"3M":-8.45,"6M":9.48,"12M":23.63,"YTD":15.44},"cum":20.62,"vsBM":-6.07,"contracts":30,"balance":4.7}},"fee":{"min":"1천만원","base":1.5,"adv_bp":50,"perf":"10% 초과분의 20%","adv_pay":"50%"}},{"id":"us_public","group":"us","name":"메리츠 글로벌 더퍼블릭랩(성과형)","short":"글로벌 더퍼블릭랩(성과형)","snaps":{"0930":{"open":"2025-01-24","ret":{"1M":-1.16,"3M":-11.38,"6M":3.49,"12M":-26.83,"YTD":-16.4},"cum":-16.16,"vsBM":-44.1,"contracts":49,"balance":6.0},"0915":{"open":"2025-01-24","ret":{"MTD":-0.49,"1M":-3.07,"3M":-6.04,"6M":3.37,"12M":-23.71,"YTD":-15.83},"cum":-15.58,"vsBM":-42.76},"0630":{"open":"2025-01-24","ret":{"1M":4.75,"3M":16.78,"6M":-5.67,"12M":-17.07,"YTD":-6.13},"cum":-5.39,"vsBM":-29.49,"contracts":52,"balance":7.2},"0715":{"open":"2025-01-24","ret":{"MTD":0.92,"1M":5.4,"3M":15.13,"6M":-4.78,"12M":-16.12,"YTD":-6.04},"cum":-5.3,"vsBM":-31.12},"0831":{"open":"2025-01-24","ret":{"1M":-3.58,"3M":-6.06,"6M":7.47,"12M":-20.26,"YTD":-15.83},"cum":-15.17,"vsBM":-43.79,"contracts":49,"balance":6.1}},"fee":{"min":"1천만원","base":1.5,"adv_bp":75,"perf":"10% 초과분의 20%","adv_pay":"50%"}},{"id":"us_acromis","group":"us","name":"메리츠-아크로미스 글로벌 우량주랩","short":"아크로미스 글로벌 우량주랩","snaps":{"0930":{"open":"2025-07-14","ret":{"1M":9.03,"3M":-19.76,"6M":35.67,"12M":22.69,"YTD":28.67},"cum":49.59,"vsBM":27.05,"contracts":4,"balance":8.8},"0915":{"open":"2025-07-14","ret":{"MTD":-1.39,"1M":-9.65,"3M":-25.14,"6M":10.81,"12M":21.69,"YTD":16.35},"cum":35.28,"vsBM":13.55},"0630":{"open":"2025-07-14","ret":{"1M":3.18,"3M":69.1,"6M":60.36,"12M":null,"YTD":59.83},"cum":86.45,"vsBM":67.58,"contracts":4,"balance":9.2},"0715":{"open":"2025-07-14","ret":{"MTD":-6.9,"1M":-7.46,"3M":16.65,"6M":31.77,"12M":67.73,"YTD":43.35},"cum":67.22,"vsBM":46.71},"0831":{"open":"2025-07-14","ret":{"1M":-1.6,"3M":-24.07,"6M":13.37,"12M":32.36,"YTD":17.61},"cum":37.19,"vsBM":14.0,"contracts":4,"balance":8.1}},"fee":{"min":"1억원","base":2.0,"adv_bp":60,"perf":"7% 초과분의 15%","adv_pay":"70%"}},{"id":"us_sapiens","group":"us","name":"메리츠 올바른투자 랩(사피엔스)","short":"올바른투자 랩(사피엔스)","snaps":{"0930":{"open":"2025-08-01","ret":{"1M":11.23,"3M":-19.01,"6M":64.59,"12M":91.08,"YTD":91.49},"cum":129.21,"vsBM":108.66,"contracts":129,"balance":153.8},"0915":{"open":"2025-08-01","ret":{"MTD":-0.03,"1M":-11.09,"3M":-26.55,"6M":34.75,"12M":76.26,"YTD":72.1},"cum":106.0,"vsBM":86.24},"0630":{"open":"2025-08-01","ret":{"1M":5.61,"3M":103.24,"6M":136.46,"12M":null,"YTD":134.87},"cum":183.04,"vsBM":166.1,"contracts":120,"balance":175.6},"0715":{"open":"2025-08-01","ret":{"MTD":-12.44,"1M":-12.82,"3M":24.83,"6M":76.63,"12M":null,"YTD":102.9},"cum":144.51,"vsBM":125.96},"0831":{"open":"2025-08-01","ret":{"1M":2.67,"3M":-23.1,"6M":39.34,"12M":92.38,"YTD":70.99},"cum":106.06,"vsBM":84.86,"contracts":125,"balance":137.1}},"fee":{"min":"3천만원","base":1.5,"adv_bp":75,"perf":"10% 초과분의 20%","adv_pay":"50%"}},{"id":"quant_us","group":"us","name":"메리츠 퀀터백 로테이션랩(해외형)","short":"퀀터백 로테이션랩(해외형)","snaps":{"0930":{"open":"2026-09-21","ret":{"1M":null,"3M":null,"6M":null,"12M":null,"YTD":-0.25},"cum":-0.25,"vsBM":-0.52,"contracts":2,"balance":2.0}},"fee":{"min":"5천만원","base":1.5,"adv_bp":75,"perf":"10% 초과분의 20%","adv_pay":"50%"}},{"id":"glb_woori","group":"glb","name":"메리츠 글로벌 우리자산랩(성과형)","short":"글로벌 우리자산랩(성과형)","snaps":{"0930":{"open":"2024-12-05","ret":{"1M":4.15,"3M":-26.5,"6M":37.49,"12M":109.42,"YTD":74.09},"cum":192.09,"vsBM":89.1,"contracts":45,"balance":472.7},"0915":{"open":"2024-12-05","ret":{"MTD":-2.4,"1M":-6.89,"3M":-29.06,"6M":20.8,"12M":98.39,"YTD":63.12},"cum":173.69,"vsBM":75.56},"0630":{"open":"2024-12-05","ret":{"1M":1.5,"3M":87.08,"6M":136.87,"12M":217.35,"YTD":136.83},"cum":297.42,"vsBM":162.13,"contracts":44,"balance":667.3},"0715":{"open":"2024-12-05","ret":{"MTD":-17.32,"1M":-17.63,"3M":23.73,"6M":65.79,"12M":146.1,"YTD":89.37},"cum":217.79,"vsBM":106.31},"0831":{"open":"2024-12-05","ret":{"1M":-0.03,"3M":-28.37,"6M":10.2,"12M":119.32,"YTD":67.11},"cum":180.43,"vsBM":77.52,"contracts":45,"balance":453.8}},"fee":{"min":"5천만원","base":2.0,"adv_bp":60,"perf":"7% 초과분의 20%","adv_pay":"50%"}},{"id":"glb_public","group":"glb","name":"메리츠 글로벌 더퍼블릭랩(국내해외혼합)","short":"글로벌 더퍼블릭랩(국내해외혼합)","snaps":{"0930":{"open":"2024-12-05","ret":{"1M":-7.19,"3M":-4.02,"6M":9.9,"12M":-9.71,"YTD":-2.5},"cum":7.15,"vsBM":-95.84,"contracts":74,"balance":12.8},"0915":{"open":"2024-12-05","ret":{"MTD":-6.61,"1M":-5.2,"3M":-1.07,"6M":7.07,"12M":-8.8,"YTD":-1.89},"cum":7.82,"vsBM":-90.31},"0630":{"open":"2024-12-05","ret":{"1M":0.42,"3M":14.51,"6M":1.57,"12M":0.14,"YTD":1.3},"cum":11.64,"vsBM":-123.65,"contracts":83,"balance":16.8},"0715":{"open":"2024-12-05","ret":{"MTD":-1.43,"1M":0.25,"3M":4.79,"6M":0.31,"12M":-4.47,"YTD":-0.85},"cum":9.27,"vsBM":-102.21},"0831":{"open":"2024-12-05","ret":{"1M":7.71,"3M":3.85,"6M":10.36,"12M":1.24,"YTD":4.76},"cum":15.46,"vsBM":-87.45,"contracts":75,"balance":14.1}},"fee":{"min":"1천만원","base":1.5,"adv_bp":75,"perf":"10% 초과분의 20%","adv_pay":"50%"}}],"bmSeries":{"dom":{"0930":{"ret":{"1M":0.26,"3M":-19.33,"6M":35.34,"12M":99.67,"YTD":62.26},"contracts":204,"balance":124.9},"0915":{"ret":{"MTD":-2.83,"1M":-5.03,"3M":-22.45,"6M":20.78,"12M":94.5,"YTD":57.26},"contracts":null,"balance":null},"0630":{"ret":{"1M":0.0,"3M":67.77,"6M":101.14,"12M":175.95,"YTD":101.14},"contracts":216,"balance":189.1},"0715":{"ret":{"MTD":-14.06,"1M":-14.76,"3M":19.59,"6M":51.84,"12M":126.56,"YTD":72.86},"contracts":null,"balance":null},"0831":{"ret":{"1M":3.4,"3M":-19.54,"6M":9.22,"12M":114.06,"YTD":61.84},"contracts":207,"balance":124.6}},"cn":{"0930":{"ret":{"1M":-3.61,"3M":-6.16,"6M":-1.28,"12M":-1.05,"YTD":-3.19},"contracts":2,"balance":1.3},"0915":{"ret":{"MTD":-3.06,"1M":-1.6,"3M":-5.67,"6M":-5.64,"12M":0.1,"YTD":-2.63},"contracts":null,"balance":null},"0630":{"ret":{"1M":0.63,"3M":5.2,"6M":3.16,"12M":18.86,"YTD":3.16},"contracts":2,"balance":2.0},"0715":{"ret":{"MTD":-3.39,"1M":-3.44,"3M":-1.78,"6M":-3.82,"12M":12.86,"YTD":-0.33},"contracts":null,"balance":null},"0831":{"ret":{"1M":4.02,"3M":-2.02,"6M":-4.24,"12M":3.33,"YTD":0.44},"contracts":2,"balance":1.4}},"us":{"0930":{"ret":{"1M":-0.45,"3M":2.03,"6M":17.2,"12M":14.4,"YTD":11.77},"contracts":297,"balance":252.7},"0915":{"ret":{"MTD":-1.31,"1M":-2.57,"3M":0.42,"6M":14.38,"12M":14.67,"YTD":10.81},"contracts":null,"balance":null},"0630":{"ret":{"1M":-1.06,"3M":14.87,"6M":9.55,"12M":20.86,"YTD":9.55},"contracts":284,"balance":289.7},"0715":{"ret":{"MTD":0.97,"1M":0.24,"3M":7.82,"6M":9.04,"12M":21.28,"YTD":10.62},"contracts":null,"balance":null},"0831":{"ret":{"1M":2.62,"3M":1.4,"6M":11.74,"12M":18.98,"YTD":12.28},"contracts":292,"balance":232.0}},"glb":{"0930":{"ret":{"1M":-0.09,"3M":-8.65,"6M":26.27,"12M":57.04,"YTD":37.02},"contracts":119,"balance":485.5},"0915":{"ret":{"MTD":-2.07,"1M":-3.8,"3M":-11.02,"6M":17.58,"12M":54.59,"YTD":34.04},"contracts":null,"balance":null},"0630":{"ret":{"1M":-0.53,"3M":41.32,"6M":55.35,"12M":98.41,"YTD":55.35},"contracts":127,"balance":684.0},"0715":{"ret":{"MTD":-6.54,"1M":-7.26,"3M":13.7,"6M":30.44,"12M":73.92,"YTD":41.74},"contracts":null,"balance":null},"0831":{"ret":{"1M":3.01,"3M":-9.07,"6M":10.48,"12M":66.52,"YTD":37.06},"contracts":120,"balance":467.9}}},"snapOrder":["0630","0715","0831","0915","0930"],"asofMap":{"0630":"2026-06-30","0715":"2026-07-15","0831":"2026-08-31","0915":"2026-09-15","0930":"2026-09-30"}}, A={"snaps":["0630","0731","0815","0831","0915","0930"],"dates":{"0630":"2026-06-30","0731":"2026-07-31","0815":"2026-08-15","0831":"2026-08-31","0915":"2026-09-15","0930":"2026-09-30"},"periods":{"0630":["1M","3M","6M","12M","YTD","2Y"],"0731":["1M","3M","6M","12M","YTD","2Y","3Y"],"0815":["MTD","1M","3M","6M","12M","YTD","2Y","3Y"],"0831":["1M","3M","6M","12M","YTD","2Y","3Y"],"0915":["MTD","1M","3M","6M","12M","YTD","2Y","3Y"],"0930":["1M","3M","6M","12M","YTD","2Y","3Y"]},"mk":{"dom":"국내","us":"해외(미국)","cn":"해외(중국)","mix":"해외(혼합)"},"bmName":{"dom":"KOSPI","us":"S&P500","cn":"상해종합지수","mix":"KOSPI 50% + S&P500 50%"},"bm":{"0630":{"dom":{"1M":0.0,"3M":67.8,"6M":101.1,"12M":176.0,"YTD":101.1,"2Y":203.0},"us":{"1M":-1.1,"3M":14.9,"6M":9.6,"12M":20.9,"YTD":9.6,"2Y":37.3},"cn":{"1M":0.6,"3M":5.2,"6M":3.2,"12M":null,"YTD":3.2,"2Y":null},"mix":{"1M":-0.5,"3M":null,"6M":null,"12M":null,"YTD":null,"2Y":null}},"0731":{"dom":{"1M":-22.2,"3M":0.1,"6M":26.2,"12M":103.2,"YTD":56.5,"2Y":138.0,"3Y":150.5},"us":{"1M":-0.1,"3M":3.9,"6M":7.9,"12M":18.2,"YTD":9.4,"2Y":35.6,"3Y":35.6},"cn":{"1M":-6.4,"3M":-6.8,"6M":-6.9,"12M":null,"YTD":-3.4,"2Y":null,"3Y":null},"mix":{"1M":-11.2,"3M":1.9,"6M":null,"12M":null,"YTD":null,"2Y":null,"3Y":null}},"0815":{"dom":{"MTD":5.8,"1M":-4.2,"3M":-6.9,"6M":26.7,"12M":116.3,"YTD":65.6,"2Y":163.9,"3Y":171.4},"us":{"MTD":4.0,"1M":2.8,"3M":5.1,"6M":13.9,"12M":20.7,"YTD":13.7,"2Y":40.5,"3Y":40.5},"cn":{"MTD":2.5,"1M":-0.7,"3M":-5.0,"6M":-3.8,"12M":null,"YTD":-1.1,"2Y":null,"3Y":null},"mix":{"MTD":4.9,"1M":-0.7,"3M":-0.9,"6M":null,"12M":null,"YTD":null,"2Y":null,"3Y":null}},"0831":{"dom":{"1M":3.4,"3M":-19.5,"6M":9.2,"12M":114.1,"YTD":61.8,"2Y":155.0,"3Y":166.8},"us":{"1M":2.6,"3M":1.4,"6M":11.7,"12M":19.0,"YTD":12.3,"2Y":36.1,"3Y":36.1},"mix":{"1M":3.0,"3M":-9.1,"6M":null,"12M":null,"YTD":null,"2Y":null,"3Y":null}},"0915":{"dom":{"MTD":-2.8,"1M":-5.0,"3M":-22.5,"6M":20.8,"12M":94.5,"YTD":57.3,"2Y":157.3,"3Y":154.8},"us":{"MTD":-1.3,"1M":-2.6,"3M":0.4,"6M":14.4,"12M":14.7,"YTD":10.8,"2Y":34.8,"3Y":34.8},"mix":{"MTD":-2.1,"1M":-3.8,"3M":-11.0,"6M":null,"12M":null,"YTD":null,"2Y":null,"3Y":null}},"0930":{"dom":{"1M":0.3,"3M":-19.3,"6M":35.3,"12M":99.7,"YTD":62.3,"2Y":163.7,"3Y":177.4},"us":{"1M":-0.5,"3M":2.0,"6M":17.2,"12M":14.4,"YTD":11.8,"2Y":32.8,"3Y":32.8},"mix":{"1M":-0.1,"3M":-8.7,"6M":null,"12M":null,"YTD":null,"2Y":null,"3Y":null}}},"rows":[{"id":"dom:디에스(Focus)","m":"dom","name":"디에스(Focus)","brand":"디에스","last":"0930","open":{"0630":"2026-04-01","0731":"2026-04-01","0815":"2026-04-01","0831":"2026-04-01","0915":"2024-09-18","0930":"2024-09-18"},"turn":{"0630":17.9,"0731":27.0,"0815":null,"0831":100.5,"0915":null,"0930":14.1},"ret":{"0630":{"1M":8.4,"3M":97.7,"6M":null,"12M":null,"YTD":null,"2Y":null},"0731":{"1M":-27.4,"3M":8.8,"6M":null,"12M":null,"YTD":null,"2Y":null,"3Y":null},"0815":{"MTD":-5.0,"1M":-16.1,"3M":-15.6,"6M":null,"12M":null,"YTD":null,"2Y":null,"3Y":null},"0831":{"1M":-5.8,"3M":-25.9,"6M":null,"12M":null,"YTD":null,"2Y":null,"3Y":null},"0915":{"MTD":-2.0,"1M":-3.8,"3M":-24.0,"6M":35.3,"12M":136.5,"YTD":82.9,"2Y":null,"3Y":null},"0930":{"1M":5.5,"3M":-23.0,"6M":58.0,"12M":148.2,"YTD":96.9,"2Y":355.4,"3Y":null}},"cum":{"0630":97.7,"0731":43.6,"0815":36.4,"0831":35.2,"0915":328.8,"0930":361.6},"vs":{"0630":29.9,"0731":13.0,"0815":-1.7,"0831":0.2,"0915":171.5,"0930":196.1},"mon":[{"lab":"6월","v":8.4,"b":0.0,"x":8.4},{"lab":"7월","v":-27.4,"b":-22.2,"x":-5.2},{"lab":"8월","v":-5.8,"b":3.4,"x":-9.2},{"lab":"9월","v":5.5,"b":0.3,"x":5.2}],"wins":2,"nm":4,"avgx":-0.2,"jul":-5.2,"ytd":96.9,"ytdbm":62.3,"ytdx":34.6,"m12":148.2,"m12bm":99.7,"m12x":48.5,"cumNow":361.6,"vsNow":196.1,"hist":24.4,"turnAvg":39.9,"nsnap":6,"derived":[],"tags":["계좌변경"],"verdict":"양호"},{"id":"dom:디에스(Core Growth)","m":"dom","name":"디에스(Core Growth)","brand":"디에스","last":"0930","open":{"0630":"2026-04-01","0731":"2026-04-01","0815":"2026-04-01","0831":"2026-04-01","0915":"2025-06-11","0930":"2025-06-11"},"turn":{"0630":16.1,"0731":14.9,"0815":null,"0831":0.0,"0915":null,"0930":10.0},"ret":{"0630":{"1M":7.7,"3M":99.1,"6M":null,"12M":null,"YTD":null,"2Y":null},"0731":{"1M":-31.2,"3M":2.4,"6M":null,"12M":null,"YTD":null,"2Y":null,"3Y":null},"0815":{"MTD":6.7,"1M":-8.6,"3M":-11.7,"6M":null,"12M":null,"YTD":null,"2Y":null,"3Y":null},"0831":{"1M":5.6,"3M":-21.8,"6M":null,"12M":null,"YTD":null,"2Y":null,"3Y":null},"0915":{"MTD":-3.5,"1M":-4.1,"3M":-25.9,"6M":20.8,"12M":112.5,"YTD":68.2,"2Y":null,"3Y":null},"0930":{"1M":6.0,"3M":-22.5,"6M":47.6,"12M":134.5,"YTD":84.7,"2Y":null,"3Y":null}},"cum":{"0630":99.1,"0731":36.9,"0815":46.0,"0831":44.5,"0915":149.5,"0930":173.9},"vs":{"0630":31.3,"0731":6.3,"0815":7.9,"0831":9.5,"0915":21.5,"0930":38.7},"mon":[{"lab":"6월","v":7.7,"b":0.0,"x":7.7},{"lab":"7월","v":-31.2,"b":-22.2,"x":-9.0},{"lab":"8월","v":5.6,"b":3.4,"x":2.2},{"lab":"9월","v":6.0,"b":0.3,"x":5.7}],"wins":3,"nm":4,"avgx":1.7,"jul":-9.0,"ytd":84.7,"ytdbm":62.3,"ytdx":22.4,"m12":134.5,"m12bm":99.7,"m12x":34.8,"cumNow":173.9,"vsNow":38.7,"hist":15.6,"turnAvg":10.2,"nsnap":6,"derived":[],"tags":["계좌변경"],"verdict":"우수"},{"id":"dom:캄투자일임","m":"dom","name":"캄투자일임","brand":"캄투자일임","last":"0930","open":{"0630":"2023-08-04","0731":"2023-08-04","0815":"2023-08-04","0831":"2023-08-04","0915":"2023-08-04","0930":"2023-08-04"},"turn":{"0630":7.5,"0731":12.4,"0815":null,"0831":0.7,"0915":null,"0930":1.6},"ret":{"0630":{"1M":4.7,"3M":112.5,"6M":140.5,"12M":228.7,"YTD":140.5,"2Y":616.3},"0731":{"1M":-22.9,"3M":15.4,"6M":48.1,"12M":149.9,"YTD":85.4,"2Y":460.5,"3Y":null},"0815":{"MTD":2.3,"1M":-7.7,"3M":-5.8,"6M":57.8,"12M":162.7,"YTD":89.6,"2Y":504.9,"3Y":1044.5},"0831":{"1M":3.7,"3M":-16.3,"6M":39.9,"12M":158.0,"YTD":92.2,"2Y":533.8,"3Y":1037.4},"0915":{"MTD":-2.3,"1M":-1.0,"3M":-17.7,"6M":53.3,"12M":129.0,"YTD":87.7,"2Y":513.6,"3Y":1003.9},"0930":{"1M":1.1,"3M":-19.2,"6M":71.6,"12M":134.3,"YTD":94.3,"2Y":510.6,"3Y":1045.3}},"cum":{"0630":1419.4,"0731":1071.2,"0815":1097.5,"0831":1114.3,"0915":1086.0,"0930":1127.3},"vs":{"0630":1193.7,"0731":917.8,"0815":929.4,"0831":952.2,"0915":931.4,"0930":964.6},"mon":[{"lab":"6월","v":4.7,"b":0.0,"x":4.7},{"lab":"7월","v":-22.9,"b":-22.2,"x":-0.7},{"lab":"8월","v":3.7,"b":3.4,"x":0.3},{"lab":"9월","v":1.1,"b":0.3,"x":0.8}],"wins":3,"nm":4,"avgx":1.3,"jul":-0.7,"ytd":94.3,"ytdbm":62.3,"ytdx":32.0,"m12":134.3,"m12bm":99.7,"m12x":34.6,"cumNow":1127.3,"vsNow":964.6,"hist":37.9,"turnAvg":5.5,"nsnap":6,"derived":[],"tags":[],"verdict":"우수"},{"id":"dom:디에스(기존_Dynamic)","m":"dom","name":"디에스(기존_Dynamic)","brand":"디에스","last":"0930","open":{"0630":"2021-08-04","0731":"2021-08-04","0815":"2021-08-04","0831":"2021-08-04","0915":"2021-08-04","0930":"2021-08-04"},"turn":{"0630":29.1,"0731":123.2,"0815":null,"0831":96.8,"0915":null,"0930":63.7},"ret":{"0630":{"1M":4.2,"3M":88.2,"6M":117.6,"12M":121.1,"YTD":117.6,"2Y":289.2},"0731":{"1M":-5.4,"3M":26.9,"6M":64.5,"12M":111.5,"YTD":105.8,"2Y":300.8,"3Y":229.5},"0815":{"MTD":6.2,"1M":8.6,"3M":16.6,"6M":77.3,"12M":124.5,"YTD":118.6,"2Y":363.2,"3Y":278.6},"0831":{"1M":6.2,"3M":4.7,"6M":54.1,"12M":117.6,"YTD":118.6,"2Y":350.6,"3Y":277.6},"0915":{"MTD":-7.6,"1M":-7.6,"3M":-8.6,"6M":52.1,"12M":100.8,"YTD":102.1,"2Y":332.5,"3Y":267.3},"0930":{"1M":-7.4,"3M":-7.0,"6M":75.1,"12M":99.0,"YTD":102.5,"2Y":321.9,"3Y":286.8}},"cum":{"0630":359.6,"0731":334.6,"0815":361.6,"0831":361.7,"0915":326.7,"0930":327.6},"vs":{"0630":201.2,"0731":233.6,"0815":248.8,"0831":253.8,"0915":224.7,"0930":219.1},"mon":[{"lab":"6월","v":4.2,"b":0.0,"x":4.2},{"lab":"7월","v":-5.4,"b":-22.2,"x":16.8},{"lab":"8월","v":6.2,"b":3.4,"x":2.8},{"lab":"9월","v":-7.4,"b":0.3,"x":-7.7}],"wins":3,"nm":4,"avgx":4.0,"jul":16.8,"ytd":102.5,"ytdbm":62.3,"ytdx":40.2,"m12":99.0,"m12bm":99.7,"m12x":-0.7,"cumNow":327.6,"vsNow":219.1,"hist":61.9,"turnAvg":78.2,"nsnap":6,"derived":[],"tags":[],"verdict":"우수"},{"id":"dom:토러스(기존)","m":"dom","name":"토러스(기존)","brand":"토러스","last":"0930","open":{"0630":"2018-04-10","0731":"2018-04-10","0815":"2018-04-10","0831":"2018-04-10","0915":"2018-04-10","0930":"2018-04-10"},"turn":{"0630":61.9,"0731":28.1,"0815":null,"0831":30.2,"0915":null,"0930":94.0},"ret":{"0630":{"1M":4.2,"3M":88.3,"6M":136.1,"12M":226.4,"YTD":136.1,"2Y":219.7},"0731":{"1M":-25.0,"3M":5.7,"6M":32.6,"12M":148.4,"YTD":77.0,"2Y":162.7,"3Y":194.9},"0815":{"MTD":1.8,"1M":-8.7,"3M":-10.1,"6M":34.0,"12M":160.6,"YTD":80.1,"2Y":186.5,"3Y":219.5},"0831":{"1M":-1.1,"3M":-22.7,"6M":11.1,"12M":154.2,"YTD":75.0,"2Y":183.6,"3Y":210.4},"0915":{"MTD":-0.7,"1M":-3.5,"3M":-25.5,"6M":25.3,"12M":130.3,"YTD":73.7,"2Y":193.0,"3Y":243.2},"0930":{"1M":1.6,"3M":-24.7,"6M":41.9,"12M":135.5,"YTD":77.8,"2Y":193.4,"3Y":251.4}},"cum":{"0630":838.6,"0731":603.7,"0815":616.1,"0831":595.8,"0915":590.7,"0930":607.1},"vs":{"0630":591.8,"0731":433.9,"0815":430.6,"0831":416.7,"0915":419.5,"0930":428.0},"mon":[{"lab":"6월","v":4.2,"b":0.0,"x":4.2},{"lab":"7월","v":-25.0,"b":-22.2,"x":-2.8},{"lab":"8월","v":-1.1,"b":3.4,"x":-4.5},{"lab":"9월","v":1.6,"b":0.3,"x":1.3}],"wins":2,"nm":4,"avgx":-0.4,"jul":-2.8,"ytd":77.8,"ytdbm":62.3,"ytdx":15.5,"m12":135.5,"m12bm":99.7,"m12x":35.8,"cumNow":607.1,"vsNow":428.0,"hist":101.7,"turnAvg":53.5,"nsnap":6,"derived":[],"tags":[],"verdict":"양호"},{"id":"dom:원자산","m":"dom","name":"원자산","brand":"원자산","last":"0930","open":{"0630":"2026-01-09","0731":"2026-01-09","0815":"2026-01-09","0831":"2026-01-09","0915":"2026-01-09","0930":"2026-01-09"},"turn":{"0630":9.1,"0731":11.5,"0815":null,"0831":15.2,"0915":null,"0930":8.9},"ret":{"0630":{"1M":2.8,"3M":65.2,"6M":null,"12M":null,"YTD":null,"2Y":null},"0731":{"1M":-20.8,"3M":-0.6,"6M":21.0,"12M":null,"YTD":null,"2Y":null,"3Y":null},"0815":{"MTD":7.8,"1M":-2.1,"3M":-4.4,"6M":29.6,"12M":null,"YTD":null,"2Y":null,"3Y":null},"0831":{"1M":4.9,"3M":-14.7,"6M":16.8,"12M":null,"YTD":null,"2Y":null,"3Y":null},"0915":{"MTD":-1.8,"1M":-4.4,"3M":-15.0,"6M":25.6,"12M":null,"YTD":null,"2Y":null,"3Y":null},"0930":{"1M":2.7,"3M":-14.8,"6M":40.8,"12M":null,"YTD":null,"2Y":null,"3Y":null}},"cum":{"0630":68.5,"0731":33.4,"0815":43.8,"0831":39.9,"0915":37.4,"0930":43.7},"vs":{"0630":-17.7,"0731":-11.5,"0815":-9.5,"0831":-9.9,"0915":-8.2,"0930":-6.5},"mon":[{"lab":"6월","v":2.8,"b":0.0,"x":2.8},{"lab":"7월","v":-20.8,"b":-22.2,"x":1.4},{"lab":"8월","v":4.9,"b":3.4,"x":1.5},{"lab":"9월","v":2.7,"b":0.3,"x":2.4}],"wins":4,"nm":4,"avgx":2.0,"jul":1.4,"ytd":null,"ytdbm":62.3,"ytdx":null,"m12":null,"m12bm":99.7,"m12x":null,"cumNow":43.7,"vsNow":-6.5,"hist":8.7,"turnAvg":11.2,"nsnap":6,"derived":[],"tags":[],"verdict":"관찰"},{"id":"dom:디에스(Rising Star)","m":"dom","name":"디에스(Rising Star)","brand":"디에스","last":"0930","open":{"0630":"2026-04-01","0731":"2026-04-01","0815":"2026-04-01","0831":"2026-04-01","0915":"2025-06-27","0930":"2025-06-27"},"turn":{"0630":26.5,"0731":8.9,"0815":null,"0831":25.6,"0915":null,"0930":39.7},"ret":{"0630":{"1M":2.5,"3M":51.9,"6M":null,"12M":null,"YTD":null,"2Y":null},"0731":{"1M":-25.0,"3M":-12.8,"6M":null,"12M":null,"YTD":null,"2Y":null,"3Y":null},"0815":{"MTD":8.7,"1M":-7.3,"3M":-12.0,"6M":null,"12M":null,"YTD":null,"2Y":null,"3Y":null},"0831":{"1M":1.5,"3M":-22.1,"6M":null,"12M":null,"YTD":null,"2Y":null,"3Y":null},"0915":{"MTD":-1.4,"1M":-7.0,"3M":-26.0,"6M":12.2,"12M":44.6,"YTD":45.7,"2Y":null,"3Y":null},"0930":{"1M":8.7,"3M":-19.8,"6M":37.7,"12M":57.6,"YTD":60.7,"2Y":null,"3Y":null}},"cum":{"0630":51.9,"0731":13.9,"0815":23.8,"0831":15.6,"0915":51.9,"0930":67.6},"vs":{"0630":-15.9,"0731":-16.7,"0815":-14.3,"0831":-19.4,"0915":-65.0,"0930":-56.2},"mon":[{"lab":"6월","v":2.5,"b":0.0,"x":2.5},{"lab":"7월","v":-25.0,"b":-22.2,"x":-2.8},{"lab":"8월","v":1.5,"b":3.4,"x":-1.9},{"lab":"9월","v":8.7,"b":0.3,"x":8.4}],"wins":2,"nm":4,"avgx":1.6,"jul":-2.8,"ytd":60.7,"ytdbm":62.3,"ytdx":-1.6,"m12":57.6,"m12bm":99.7,"m12x":-42.1,"cumNow":67.6,"vsNow":-56.2,"hist":15.1,"turnAvg":25.2,"nsnap":6,"derived":[],"tags":["계좌변경"],"verdict":"보통"},{"id":"dom:파인투자","m":"dom","name":"파인투자","brand":"파인투자","last":"0930","open":{"0630":"2021-01-15","0731":"2021-01-15","0815":"2021-01-15","0831":"2021-01-15","0915":"2021-01-15","0930":"2021-01-15"},"turn":{"0630":4.7,"0731":9.6,"0815":null,"0831":2.7,"0915":null,"0930":16.8},"ret":{"0630":{"1M":2.2,"3M":35.8,"6M":54.0,"12M":63.1,"YTD":54.0,"2Y":124.0},"0731":{"1M":-14.2,"3M":-6.3,"6M":6.1,"12M":30.4,"YTD":32.1,"2Y":106.7,"3Y":181.6},"0815":{"MTD":5.8,"1M":1.0,"3M":-6.7,"6M":16.2,"12M":31.4,"YTD":39.7,"2Y":118.9,"3Y":188.4},"0831":{"1M":11.9,"3M":-2.0,"6M":13.3,"12M":37.0,"YTD":47.8,"2Y":138.2,"3Y":203.7},"0915":{"MTD":-9.5,"1M":-4.3,"3M":-13.6,"6M":10.0,"12M":23.0,"YTD":33.7,"2Y":119.7,"3Y":174.6},"0930":{"1M":-6.4,"3M":-10.2,"6M":22.0,"12M":29.3,"YTD":38.3,"2Y":120.7,"3Y":189.6}},"cum":{"0630":214.0,"0731":169.3,"0815":184.8,"0831":201.3,"0915":172.6,"0930":182.0},"vs":{"0630":39.4,"0731":55.6,"0815":58.7,"0831":80.3,"0915":57.8,"0930":60.5},"mon":[{"lab":"6월","v":2.2,"b":0.0,"x":2.2},{"lab":"7월","v":-14.2,"b":-22.2,"x":8.0},{"lab":"8월","v":11.9,"b":3.4,"x":8.5},{"lab":"9월","v":-6.4,"b":0.3,"x":-6.7}],"wins":3,"nm":4,"avgx":3.0,"jul":8.0,"ytd":38.3,"ytdbm":62.3,"ytdx":-24.0,"m12":29.3,"m12bm":99.7,"m12x":-70.4,"cumNow":182.0,"vsNow":60.5,"hist":68.5,"turnAvg":8.4,"nsnap":6,"derived":[],"tags":[],"verdict":"방어형"},{"id":"dom:토러스(정희석매니저)","m":"dom","name":"토러스(정희석매니저)","brand":"토러스","last":"0930","open":{"0630":"2026-04-01","0731":"2026-04-01","0815":"2026-04-01","0831":"2026-04-01","0915":"2026-04-01","0930":"2026-04-01"},"turn":{"0630":26.2,"0731":16.4,"0815":null,"0831":13.1,"0915":null,"0930":22.3},"ret":{"0630":{"1M":1.6,"3M":68.9,"6M":null,"12M":null,"YTD":null,"2Y":null},"0731":{"1M":-22.7,"3M":-0.7,"6M":null,"12M":null,"YTD":null,"2Y":null,"3Y":null},"0815":{"MTD":4.6,"1M":-6.4,"3M":-7.6,"6M":null,"12M":null,"YTD":null,"2Y":null,"3Y":null},"0831":{"1M":2.7,"3M":-19.3,"6M":null,"12M":null,"YTD":null,"2Y":null,"3Y":null},"0915":{"MTD":-2.5,"1M":-4.3,"3M":-22.4,"6M":null,"12M":null,"YTD":null,"2Y":null,"3Y":null},"0930":{"1M":2.7,"3M":-18.4,"6M":37.8,"12M":null,"YTD":null,"2Y":null,"3Y":null}},"cum":{"0630":68.9,"0731":30.6,"0815":36.6,"0831":34.1,"0915":30.8,"0930":37.8},"vs":{"0630":1.2,"0731":0.0,"0815":-1.5,"0831":-0.8,"0915":-0.4,"0930":2.5},"mon":[{"lab":"6월","v":1.6,"b":0.0,"x":1.6},{"lab":"7월","v":-22.7,"b":-22.2,"x":-0.5},{"lab":"8월","v":2.7,"b":3.4,"x":-0.7},{"lab":"9월","v":2.7,"b":0.3,"x":2.4}],"wins":2,"nm":4,"avgx":0.7,"jul":-0.5,"ytd":null,"ytdbm":62.3,"ytdx":null,"m12":null,"m12bm":99.7,"m12x":null,"cumNow":37.8,"vsNow":2.5,"hist":6.0,"turnAvg":19.5,"nsnap":6,"derived":[],"tags":[],"verdict":"관찰"},{"id":"dom:디에스(New Growth)","m":"dom","name":"디에스(New Growth)","brand":"디에스","last":"0930","open":{"0630":"2026-04-01","0731":"2026-04-01","0815":"2026-04-01","0831":"2026-04-01","0915":"2025-12-11","0930":"2025-12-11"},"turn":{"0630":29.8,"0731":104.2,"0815":null,"0831":50.8,"0915":null,"0930":106.1},"ret":{"0630":{"1M":1.2,"3M":63.0,"6M":null,"12M":null,"YTD":null,"2Y":null},"0731":{"1M":-28.2,"3M":-18.2,"6M":null,"12M":null,"YTD":null,"2Y":null,"3Y":null},"0815":{"MTD":8.1,"1M":null,"3M":-18.5,"6M":null,"12M":null,"YTD":null,"2Y":null,"3Y":null},"0831":{"1M":4.4,"3M":-24.2,"6M":null,"12M":null,"YTD":null,"2Y":null,"3Y":null},"0915":{"MTD":-2.7,"1M":-6.1,"3M":-26.4,"6M":0.4,"12M":null,"YTD":32.1,"2Y":null,"3Y":null},"0930":{"1M":0.8,"3M":-24.4,"6M":23.2,"12M":null,"YTD":36.9,"2Y":null,"3Y":null}},"cum":{"0630":63.0,"0731":17.1,"0815":26.5,"0831":22.2,"0915":32.4,"0930":37.2},"vs":{"0630":-4.8,"0731":-13.5,"0815":-11.6,"0831":-12.8,"0915":-28.8,"0930":-29.2},"mon":[{"lab":"6월","v":1.2,"b":0.0,"x":1.2},{"lab":"7월","v":-28.2,"b":-22.2,"x":-6.0},{"lab":"8월","v":4.4,"b":3.4,"x":1.0},{"lab":"9월","v":0.8,"b":0.3,"x":0.5}],"wins":3,"nm":4,"avgx":-0.8,"jul":-6.0,"ytd":36.9,"ytdbm":62.3,"ytdx":-25.4,"m12":null,"m12bm":99.7,"m12x":null,"cumNow":37.2,"vsNow":-29.2,"hist":9.6,"turnAvg":72.7,"nsnap":6,"derived":[],"tags":["계좌변경"],"verdict":"방어형"},{"id":"dom:파운데이션투자","m":"dom","name":"파운데이션투자","brand":"파운데이션투자","last":"0930","open":{"0630":"2025-07-30","0731":"2025-07-30","0815":"2025-07-30","0831":"2025-07-30","0915":"2025-07-30","0930":"2025-07-30"},"turn":{"0630":17.0,"0731":77.5,"0815":null,"0831":117.5,"0915":null,"0930":92.3},"ret":{"0630":{"1M":1.2,"3M":75.0,"6M":109.1,"12M":null,"YTD":109.1,"2Y":null},"0731":{"1M":-27.1,"3M":-5.8,"6M":14.0,"12M":86.7,"YTD":52.5,"2Y":null,"3Y":null},"0815":{"MTD":3.6,"1M":-9.8,"3M":-12.2,"6M":19.7,"12M":97.8,"YTD":58.0,"2Y":null,"3Y":null},"0831":{"1M":0.1,"3M":-26.2,"6M":2.5,"12M":85.6,"YTD":52.7,"2Y":null,"3Y":null},"0915":{"MTD":-5.1,"1M":-8.4,"3M":-29.9,"6M":9.9,"12M":68.8,"YTD":44.8,"2Y":null,"3Y":null},"0930":{"1M":-0.8,"3M":-27.6,"6M":26.7,"12M":78.9,"YTD":51.5,"2Y":null,"3Y":null}},"cum":{"0630":156.1,"0731":86.8,"0815":93.6,"0831":87.0,"0915":77.4,"0930":85.5},"vs":{"0630":-6.2,"0731":-17.4,"0815":-22.4,"0831":-24.1,"0915":-27.7,"0930":-26.2},"mon":[{"lab":"6월","v":1.2,"b":0.0,"x":1.2},{"lab":"7월","v":-27.1,"b":-22.2,"x":-4.9},{"lab":"8월","v":0.1,"b":3.4,"x":-3.3},{"lab":"9월","v":-0.8,"b":0.3,"x":-1.1}],"wins":1,"nm":4,"avgx":-2.0,"jul":-4.9,"ytd":51.5,"ytdbm":62.3,"ytdx":-10.8,"m12":78.9,"m12bm":99.7,"m12x":-20.8,"cumNow":85.5,"vsNow":-26.2,"hist":14.0,"turnAvg":76.1,"nsnap":6,"derived":[],"tags":[],"verdict":"보통"},{"id":"dom:밸류시스템","m":"dom","name":"밸류시스템","brand":"밸류시스템","last":"0930","open":{"0630":"2020-08-05","0731":"2020-08-05","0815":"2020-08-05","0831":"2020-08-05","0915":"2020-08-05","0930":"2020-08-05"},"turn":{"0630":25.7,"0731":19.0,"0815":null,"0831":184.3,"0915":null,"0930":153.9},"ret":{"0630":{"1M":-1.5,"3M":104.7,"6M":139.8,"12M":166.1,"YTD":139.8,"2Y":226.3},"0731":{"1M":-35.1,"3M":2.1,"6M":18.9,"12M":83.3,"YTD":55.7,"2Y":117.0,"3Y":125.7},"0815":{"MTD":2.3,"1M":-14.7,"3M":-16.6,"6M":21.3,"12M":87.5,"YTD":59.2,"2Y":128.5,"3Y":152.5},"0831":{"1M":0.5,"3M":-35.8,"6M":2.0,"12M":82.8,"YTD":56.4,"2Y":121.2,"3Y":133.9},"0915":{"MTD":-6.6,"1M":-8.3,"3M":-38.2,"6M":7.3,"12M":63.7,"YTD":46.0,"2Y":115.1,"3Y":122.3},"0930":{"1M":-5.3,"3M":-38.3,"6M":26.4,"12M":68.7,"YTD":48.1,"2Y":120.2,"3Y":140.8}},"cum":{"0630":290.2,"0731":153.2,"0815":158.9,"0831":154.4,"0915":137.5,"0930":140.9},"vs":{"0630":29.7,"0731":-27.3,"0815":-37.8,"0831":-35.6,"0915":-44.3,"0930":-54.9},"mon":[{"lab":"6월","v":-1.5,"b":0.0,"x":-1.5},{"lab":"7월","v":-35.1,"b":-22.2,"x":-12.9},{"lab":"8월","v":0.5,"b":3.4,"x":-2.9},{"lab":"9월","v":-5.3,"b":0.3,"x":-5.6}],"wins":0,"nm":4,"avgx":-5.7,"jul":-12.9,"ytd":48.1,"ytdbm":62.3,"ytdx":-14.2,"m12":68.7,"m12bm":99.7,"m12x":-31.0,"cumNow":140.9,"vsNow":-54.9,"hist":73.8,"turnAvg":95.7,"nsnap":6,"derived":[],"tags":[],"verdict":"부진"},{"id":"dom:디에스(Value up)","m":"dom","name":"디에스(Value up)","brand":"디에스","last":"0930","open":{"0630":"2026-04-01","0731":"2026-04-01","0815":"2026-04-01","0831":"2026-04-01","0915":"2024-09-18","0930":"2024-09-18"},"turn":{"0630":31.8,"0731":0.0,"0815":null,"0831":53.2,"0915":null,"0930":62.3},"ret":{"0630":{"1M":-1.6,"3M":44.5,"6M":null,"12M":null,"YTD":null,"2Y":null},"0731":{"1M":-21.6,"3M":-10.8,"6M":null,"12M":null,"YTD":null,"2Y":null,"3Y":null},"0815":{"MTD":4.2,"1M":-6.3,"3M":-14.4,"6M":null,"12M":null,"YTD":null,"2Y":null,"3Y":null},"0831":{"1M":1.2,"3M":-21.9,"6M":null,"12M":null,"YTD":null,"2Y":null,"3Y":null},"0915":{"MTD":-1.4,"1M":-4.7,"3M":-25.0,"6M":3.3,"12M":41.6,"YTD":27.2,"2Y":null,"3Y":null},"0930":{"1M":3.0,"3M":-18.4,"6M":18.0,"12M":49.8,"YTD":32.8,"2Y":104.4,"3Y":null}},"cum":{"0630":44.5,"0731":13.2,"0815":18.1,"0831":14.6,"0915":101.1,"0930":110.0},"vs":{"0630":-23.3,"0731":-17.3,"0815":-20.1,"0831":-20.4,"0915":-56.3,"0930":-55.5},"mon":[{"lab":"6월","v":-1.6,"b":0.0,"x":-1.6},{"lab":"7월","v":-21.6,"b":-22.2,"x":0.6},{"lab":"8월","v":1.2,"b":3.4,"x":-2.2},{"lab":"9월","v":3.0,"b":0.3,"x":2.7}],"wins":2,"nm":4,"avgx":-0.1,"jul":0.6,"ytd":32.8,"ytdbm":62.3,"ytdx":-29.5,"m12":49.8,"m12bm":99.7,"m12x":-49.9,"cumNow":110.0,"vsNow":-55.5,"hist":24.4,"turnAvg":36.8,"nsnap":6,"derived":[],"tags":["계좌변경"],"verdict":"부진"},{"id":"dom:토러스(차소윤매니저)","m":"dom","name":"토러스(차소윤매니저)","brand":"토러스","last":"0930","open":{"0630":"2026-04-01","0731":"2026-04-01","0815":"2026-04-01","0831":"2026-04-01","0915":"2026-04-01","0930":"2026-04-01"},"turn":{"0630":59.9,"0731":31.4,"0815":null,"0831":47.8,"0915":null,"0930":28.3},"ret":{"0630":{"1M":-1.7,"3M":63.1,"6M":null,"12M":null,"YTD":null,"2Y":null},"0731":{"1M":-23.4,"3M":-4.9,"6M":null,"12M":null,"YTD":null,"2Y":null,"3Y":null},"0815":{"MTD":3.1,"1M":-6.9,"3M":-12.4,"6M":null,"12M":null,"YTD":null,"2Y":null,"3Y":null},"0831":{"1M":0.7,"3M":-24.2,"6M":null,"12M":null,"YTD":null,"2Y":null,"3Y":null},"0915":{"MTD":-1.9,"1M":-4.2,"3M":-26.2,"6M":null,"12M":null,"YTD":null,"2Y":null,"3Y":null},"0930":{"1M":3.3,"3M":-20.4,"6M":29.9,"12M":null,"YTD":null,"2Y":null,"3Y":null}},"cum":{"0630":63.1,"0731":24.9,"0815":28.8,"0831":25.8,"0915":23.4,"0930":29.9},"vs":{"0630":-4.7,"0731":-5.6,"0815":-9.3,"0831":-9.2,"0915":-7.8,"0930":5.1},"mon":[{"lab":"6월","v":-1.7,"b":0.0,"x":-1.7},{"lab":"7월","v":-23.4,"b":-22.2,"x":-1.2},{"lab":"8월","v":0.7,"b":3.4,"x":-2.7},{"lab":"9월","v":3.3,"b":0.3,"x":3.0}],"wins":1,"nm":4,"avgx":-0.7,"jul":-1.2,"ytd":null,"ytdbm":62.3,"ytdx":null,"m12":null,"m12bm":99.7,"m12x":null,"cumNow":29.9,"vsNow":5.1,"hist":6.0,"turnAvg":41.9,"nsnap":6,"derived":[],"tags":[],"verdict":"관찰"},{"id":"dom:인베스트위드","m":"dom","name":"인베스트위드","brand":"인베스트위드","last":"0930","open":{"0630":"2024-06-03","0731":"2024-06-03","0815":"2024-06-03","0831":"2024-06-03","0915":"2024-06-03","0930":"2024-06-03"},"turn":{"0630":6.9,"0731":2.1,"0815":null,"0831":17.4,"0915":null,"0930":8.6},"ret":{"0630":{"1M":-1.8,"3M":61.2,"6M":103.8,"12M":141.2,"YTD":103.8,"2Y":235.6},"0731":{"1M":-28.0,"3M":-18.6,"6M":21.9,"12M":60.6,"YTD":46.6,"2Y":151.1,"3Y":null},"0815":{"MTD":8.9,"1M":-4.3,"3M":-17.1,"6M":28.3,"12M":82.8,"YTD":59.6,"2Y":186.8,"3Y":null},"0831":{"1M":5.0,"3M":-25.8,"6M":8.4,"12M":72.1,"YTD":54.0,"2Y":180.3,"3Y":null},"0915":{"MTD":-3.4,"1M":-6.8,"3M":-27.2,"6M":11.1,"12M":60.3,"YTD":48.8,"2Y":177.0,"3Y":null},"0930":{"1M":0.4,"3M":-24.1,"6M":22.3,"12M":67.2,"YTD":54.6,"2Y":174.0,"3Y":null}},"cum":{"0630":249.9,"0731":151.8,"0815":174.1,"0831":164.4,"0915":155.5,"0930":165.5},"vs":{"0630":33.9,"0731":5.9,"0815":13.9,"0831":10.1,"0915":8.5,"0930":10.6},"mon":[{"lab":"6월","v":-1.8,"b":0.0,"x":-1.8},{"lab":"7월","v":-28.0,"b":-22.2,"x":-5.8},{"lab":"8월","v":5.0,"b":3.4,"x":1.6},{"lab":"9월","v":0.4,"b":0.3,"x":0.1}],"wins":2,"nm":4,"avgx":-1.5,"jul":-5.8,"ytd":54.6,"ytdbm":62.3,"ytdx":-7.7,"m12":67.2,"m12bm":99.7,"m12x":-32.5,"cumNow":165.5,"vsNow":10.6,"hist":27.9,"turnAvg":8.8,"nsnap":6,"derived":[],"tags":[],"verdict":"보통"},{"id":"dom:칸서스자산","m":"dom","name":"칸서스자산","brand":"칸서스자산","last":"0915","open":{"0630":"2026-01-16","0731":"2026-01-16","0815":"2026-01-16","0831":"2026-01-16","0915":"2026-01-16"},"turn":{"0630":105.0,"0731":164.1,"0815":null,"0831":149.5,"0915":null},"ret":{"0630":{"1M":-3.3,"3M":57.5,"6M":null,"12M":null,"YTD":null,"2Y":null},"0731":{"1M":-21.3,"3M":2.6,"6M":null,"12M":null,"YTD":null,"2Y":null,"3Y":null},"0815":{"MTD":2.9,"1M":-7.2,"3M":-9.6,"6M":null,"12M":null,"YTD":null,"2Y":null,"3Y":null},"0831":{"1M":2.8,"3M":-17.5,"6M":null,"12M":null,"YTD":null,"2Y":null,"3Y":null},"0915":{"MTD":-2.1,"1M":-2.1,"3M":-21.1,"6M":null,"12M":null,"YTD":null,"2Y":null,"3Y":null}},"cum":{"0630":48.5,"0731":25.9,"0815":29.5,"0831":29.4,"0915":26.7},"vs":{"0630":-28.2,"0731":-4.7,"0815":-8.7,"0831":-5.6,"0915":-4.4},"mon":[{"lab":"6월","v":-3.3,"b":0.0,"x":-3.3},{"lab":"7월","v":-21.3,"b":-22.2,"x":0.9},{"lab":"8월","v":2.8,"b":3.4,"x":-0.6},{"lab":"9월","v":-2.1,"b":-2.8,"x":0.7}],"wins":2,"nm":4,"avgx":-0.6,"jul":0.9,"ytd":null,"ytdbm":57.3,"ytdx":null,"m12":null,"m12bm":94.5,"m12x":null,"cumNow":26.7,"vsNow":-4.4,"hist":8.0,"turnAvg":139.5,"nsnap":5,"derived":[],"tags":["고회전"],"verdict":"관찰"},{"id":"dom:솔루션퀀트(기존)","m":"dom","name":"솔루션퀀트(기존)","brand":"솔루션퀀트","last":"0930","open":{"0630":"2023-02-22","0731":"2023-02-22","0815":"2023-02-22","0831":"2023-02-22","0915":"2023-02-22","0930":"2023-02-22"},"turn":{"0630":39.0,"0731":28.6,"0815":null,"0831":93.7,"0915":null,"0930":93.8},"ret":{"0630":{"1M":-3.7,"3M":43.7,"6M":68.8,"12M":82.7,"YTD":68.8,"2Y":104.5},"0731":{"1M":-23.7,"3M":-16.5,"6M":4.3,"12M":37.1,"YTD":28.9,"2Y":67.6,"3Y":106.3},"0815":{"MTD":13.2,"1M":-3.5,"3M":-11.5,"6M":18.1,"12M":61.5,"YTD":45.9,"2Y":95.7,"3Y":128.8},"0831":{"1M":10.8,"3M":-18.6,"6M":4.2,"12M":58.4,"YTD":42.8,"2Y":94.0,"3Y":123.3},"0915":{"MTD":-6.4,"1M":-8.4,"3M":-25.6,"6M":7.2,"12M":43.4,"YTD":33.7,"2Y":90.7,"3Y":119.7},"0930":{"1M":2.0,"3M":-13.7,"6M":24.0,"12M":57.4,"YTD":45.7,"2Y":103.0,"3Y":151.6}},"cum":{"0630":279.3,"0731":189.5,"0815":227.8,"0831":220.7,"0915":200.3,"0930":227.2},"vs":{"0630":28.7,"0731":16.7,"0815":39.1,"0831":38.6,"0915":26.2,"0930":44.4},"mon":[{"lab":"6월","v":-3.7,"b":0.0,"x":-3.7},{"lab":"7월","v":-23.7,"b":-22.2,"x":-1.5},{"lab":"8월","v":10.8,"b":3.4,"x":7.4},{"lab":"9월","v":2.0,"b":0.3,"x":1.7}],"wins":2,"nm":4,"avgx":1.0,"jul":-1.5,"ytd":45.7,"ytdbm":62.3,"ytdx":-16.6,"m12":57.4,"m12bm":99.7,"m12x":-42.3,"cumNow":227.2,"vsNow":44.4,"hist":43.3,"turnAvg":63.8,"nsnap":6,"derived":[],"tags":[],"verdict":"보통"},{"id":"dom:트로이투자","m":"dom","name":"트로이투자","brand":"트로이투자","last":"0930","open":{"0630":"2018-03-16","0731":"2018-03-16","0815":"2018-03-16","0831":"2018-03-16","0915":"2018-03-16","0930":"2018-03-16"},"turn":{"0630":92.0,"0731":106.9,"0815":null,"0831":140.5,"0915":null,"0930":89.4},"ret":{"0630":{"1M":-5.3,"3M":32.2,"6M":58.2,"12M":109.0,"YTD":58.2,"2Y":99.8},"0731":{"1M":-29.8,"3M":-22.1,"6M":-9.5,"12M":39.0,"YTD":11.0,"2Y":56.6,"3Y":77.2},"0815":{"MTD":2.4,"1M":-13.3,"3M":-27.6,"6M":-9.1,"12M":35.1,"YTD":13.7,"2Y":69.9,"3Y":86.5},"0831":{"1M":1.0,"3M":-32.8,"6M":-16.9,"12M":31.2,"YTD":12.1,"2Y":73.7,"3Y":82.3},"0915":{"MTD":-6.8,"1M":-8.0,"3M":-36.7,"6M":-22.6,"12M":18.7,"YTD":4.6,"2Y":70.9,"3Y":65.8},"0930":{"1M":2.5,"3M":-27.4,"6M":-4.0,"12M":29.5,"YTD":14.9,"2Y":85.5,"3Y":94.3}},"cum":{"0630":304.3,"0731":183.7,"0815":190.5,"0831":186.6,"0915":167.2,"0930":193.7},"vs":{"0630":64.4,"0731":19.3,"0815":10.7,"0831":13.1,"0915":1.5,"0930":19.5},"mon":[{"lab":"6월","v":-5.3,"b":0.0,"x":-5.3},{"lab":"7월","v":-29.8,"b":-22.2,"x":-7.6},{"lab":"8월","v":1.0,"b":3.4,"x":-2.4},{"lab":"9월","v":2.5,"b":0.3,"x":2.2}],"wins":1,"nm":4,"avgx":-3.3,"jul":-7.6,"ytd":14.9,"ytdbm":62.3,"ytdx":-47.4,"m12":29.5,"m12bm":99.7,"m12x":-70.2,"cumNow":193.7,"vsNow":19.5,"hist":102.5,"turnAvg":107.2,"nsnap":6,"derived":[],"tags":["고회전"],"verdict":"부진"},{"id":"dom:에픽투자일임","m":"dom","name":"에픽투자일임","brand":"에픽투자일임","last":"0930","open":{"0630":"2026-02-13","0731":"2026-02-13","0815":"2026-02-13","0831":"2026-02-13","0915":"2026-02-13","0930":"2026-02-13"},"turn":{"0630":490.7,"0731":347.8,"0815":null,"0831":1079.9,"0915":null,"0930":619.1},"ret":{"0630":{"1M":-5.7,"3M":27.1,"6M":null,"12M":null,"YTD":null,"2Y":null},"0731":{"1M":-16.1,"3M":-10.1,"6M":null,"12M":null,"YTD":null,"2Y":null,"3Y":null},"0815":{"MTD":2.1,"1M":-2.7,"3M":-10.5,"6M":18.4,"12M":null,"YTD":null,"2Y":null,"3Y":null},"0831":{"1M":-6.4,"3M":-26.0,"6M":-2.0,"12M":null,"YTD":null,"2Y":null,"3Y":null},"0915":{"MTD":-12.3,"1M":-19.6,"3M":-39.2,"6M":-13.6,"12M":null,"YTD":null,"2Y":null,"3Y":null},"0930":{"1M":-10.6,"3M":-29.8,"6M":-10.8,"12M":null,"YTD":null,"2Y":null,"3Y":null}},"cum":{"0630":38.3,"0731":16.0,"0815":18.5,"0831":8.6,"0915":-4.8,"0930":-2.9},"vs":{"0630":-15.2,"0731":-3.4,"0815":-7.9,"0831":-14.9,"0915":-24.8,"0930":-26.7},"mon":[{"lab":"6월","v":-5.7,"b":0.0,"x":-5.7},{"lab":"7월","v":-16.1,"b":-22.2,"x":6.1},{"lab":"8월","v":-6.4,"b":3.4,"x":-9.8},{"lab":"9월","v":-10.6,"b":0.3,"x":-10.9}],"wins":1,"nm":4,"avgx":-5.1,"jul":6.1,"ytd":null,"ytdbm":62.3,"ytdx":null,"m12":null,"m12bm":99.7,"m12x":null,"cumNow":-2.9,"vsNow":-26.7,"hist":7.6,"turnAvg":634.4,"nsnap":6,"derived":[],"tags":["고회전"],"verdict":"관찰"},{"id":"dom:비전자산운용","m":"dom","name":"비전자산운용","brand":"비전자산운용","last":"0930","open":{"0630":"2025-07-01","0731":"2025-07-01","0815":"2025-07-01","0831":"2025-07-01","0915":"2025-07-01","0930":"2025-07-01"},"turn":{"0630":61.5,"0731":20.2,"0815":null,"0831":15.7,"0915":null,"0930":29.4},"ret":{"0630":{"1M":-6.2,"3M":34.3,"6M":51.6,"12M":68.5,"YTD":51.6,"2Y":null},"0731":{"1M":-16.7,"3M":-6.4,"6M":8.4,"12M":39.8,"YTD":26.3,"2Y":null,"3Y":null},"0815":{"MTD":7.3,"1M":0.1,"3M":-8.2,"6M":14.8,"12M":51.4,"YTD":35.5,"2Y":null,"3Y":null},"0831":{"1M":3.3,"3M":-19.2,"6M":-1.5,"12M":45.8,"YTD":30.5,"2Y":null,"3Y":null},"0915":{"MTD":-4.2,"1M":-7.7,"3M":-23.3,"6M":6.3,"12M":33.4,"YTD":25.1,"2Y":null,"3Y":null},"0930":{"1M":0.4,"3M":-13.6,"6M":16.1,"12M":40.8,"YTD":31.0,"2Y":null,"3Y":null}},"cum":{"0630":68.5,"0731":40.4,"0815":50.7,"0831":45.1,"0915":39.0,"0930":45.6},"vs":{"0630":-107.4,"0731":-74.3,"0815":-76.5,"0831":-76.9,"0915":-76.7,"0930":-77.0},"mon":[{"lab":"6월","v":-6.2,"b":0.0,"x":-6.2},{"lab":"7월","v":-16.7,"b":-22.2,"x":5.5},{"lab":"8월","v":3.3,"b":3.4,"x":-0.1},{"lab":"9월","v":0.4,"b":0.3,"x":0.1}],"wins":2,"nm":4,"avgx":-0.2,"jul":5.5,"ytd":31.0,"ytdbm":62.3,"ytdx":-31.3,"m12":40.8,"m12bm":99.7,"m12x":-58.9,"cumNow":45.6,"vsNow":-77.0,"hist":15.0,"turnAvg":31.7,"nsnap":6,"derived":[],"tags":[],"verdict":"부진"},{"id":"dom:웰컴자산운용","m":"dom","name":"웰컴자산운용","brand":"웰컴자산운용","last":"0930","open":{"0630":"2024-10-08","0731":"2024-10-08","0815":"2024-10-08","0831":"2024-10-08","0915":"2024-10-08","0930":"2024-10-08"},"turn":{"0630":93.7,"0731":87.3,"0815":null,"0831":143.6,"0915":null,"0930":115.0},"ret":{"0630":{"1M":-8.9,"3M":33.3,"6M":58.3,"12M":73.4,"YTD":58.3,"2Y":null},"0731":{"1M":-29.5,"3M":-26.8,"6M":-9.9,"12M":23.0,"YTD":11.6,"2Y":null,"3Y":null},"0815":{"MTD":10.3,"1M":-9.6,"3M":-22.3,"6M":0.2,"12M":35.8,"YTD":23.2,"2Y":null,"3Y":null},"0831":{"1M":9.7,"3M":-29.5,"6M":-10.8,"12M":35.4,"YTD":22.4,"2Y":null,"3Y":null},"0915":{"MTD":-3.5,"1M":-4.0,"3M":-30.2,"6M":-9.0,"12M":28.0,"YTD":18.2,"2Y":null,"3Y":null},"0930":{"1M":3.3,"3M":-20.1,"6M":6.5,"12M":39.2,"YTD":26.4,"2Y":null,"3Y":null}},"cum":{"0630":149.9,"0731":76.2,"0815":94.4,"0831":93.2,"0915":86.5,"0930":99.6},"vs":{"0630":-76.9,"0731":-78.0,"0815":-74.6,"0831":-69.7,"0915":-68.9,"0930":-64.0},"mon":[{"lab":"6월","v":-8.9,"b":0.0,"x":-8.9},{"lab":"7월","v":-29.5,"b":-22.2,"x":-7.3},{"lab":"8월","v":9.7,"b":3.4,"x":6.3},{"lab":"9월","v":3.3,"b":0.3,"x":3.0}],"wins":2,"nm":4,"avgx":-1.7,"jul":-7.3,"ytd":26.4,"ytdbm":62.3,"ytdx":-35.9,"m12":39.2,"m12bm":99.7,"m12x":-60.5,"cumNow":99.6,"vsNow":-64.0,"hist":23.7,"turnAvg":109.9,"nsnap":6,"derived":[],"tags":["고회전"],"verdict":"부진"},{"id":"dom:티알에스자산","m":"dom","name":"티알에스자산","brand":"티알에스자산","last":"0930","open":{"0630":"2024-11-28","0731":"2024-11-28","0815":"2024-11-28","0831":"2024-11-28","0915":"2024-11-28","0930":"2024-11-28"},"turn":{"0630":35.3,"0731":17.8,"0815":null,"0831":54.0,"0915":null,"0930":33.3},"ret":{"0630":{"1M":-9.1,"3M":34.0,"6M":61.9,"12M":85.0,"YTD":61.9,"2Y":178.5},"0731":{"1M":-33.3,"3M":-32.6,"6M":-13.8,"12M":21.1,"YTD":8.1,"2Y":85.9,"3Y":null},"0815":{"MTD":20.4,"1M":-7.0,"3M":-21.1,"6M":4.1,"12M":48.2,"YTD":30.2,"2Y":123.8,"3Y":null},"0831":{"1M":19.9,"3M":-27.3,"6M":-5.7,"12M":46.8,"YTD":29.6,"2Y":122.9,"3Y":null},"0915":{"MTD":-3.6,"1M":-4.0,"3M":-28.0,"6M":-4.2,"12M":33.6,"YTD":24.9,"2Y":114.8,"3Y":null},"0930":{"1M":9.1,"3M":-12.7,"6M":17.0,"12M":54.3,"YTD":41.4,"2Y":143.1,"3Y":null}},"cum":{"0630":171.2,"0731":81.0,"0815":118.0,"0831":117.1,"0915":109.2,"0930":136.8},"vs":{"0630":-38.4,"0731":-59.9,"0815":-36.9,"0831":-32.1,"0915":-32.9,"0930":-13.0},"mon":[{"lab":"6월","v":-9.1,"b":0.0,"x":-9.1},{"lab":"7월","v":-33.3,"b":-22.2,"x":-11.1},{"lab":"8월","v":19.9,"b":3.4,"x":16.5},{"lab":"9월","v":9.1,"b":0.3,"x":8.8}],"wins":2,"nm":4,"avgx":1.3,"jul":-11.1,"ytd":41.4,"ytdbm":62.3,"ytdx":-20.9,"m12":54.3,"m12bm":99.7,"m12x":-45.4,"cumNow":136.8,"vsNow":-13.0,"hist":22.1,"turnAvg":35.1,"nsnap":6,"derived":[],"tags":[],"verdict":"부진"},{"id":"dom:윈베스트","m":"dom","name":"윈베스트","brand":"윈베스트","last":"0930","open":{"0630":"2025-07-11","0731":"2025-07-11","0815":"2025-07-11","0831":"2025-07-11","0915":"2025-07-11","0930":"2025-07-11"},"turn":{"0630":86.6,"0731":9.1,"0815":null,"0831":103.3,"0915":null,"0930":8.7},"ret":{"0630":{"1M":-14.9,"3M":-10.6,"6M":14.3,"12M":null,"YTD":14.3,"2Y":null},"0731":{"1M":-5.7,"3M":-26.7,"6M":-11.8,"12M":16.4,"YTD":7.8,"2Y":null,"3Y":null},"0815":{"MTD":18.7,"1M":15.0,"3M":-10.8,"6M":2.3,"12M":39.2,"YTD":28.0,"2Y":null,"3Y":null},"0831":{"1M":19.9,"3M":-3.7,"6M":-6.2,"12M":44.8,"YTD":29.2,"2Y":null,"3Y":null},"0915":{"MTD":-3.2,"1M":-2.3,"3M":-2.1,"6M":-7.0,"12M":36.1,"YTD":25.1,"2Y":null,"3Y":null},"0930":{"1M":3.2,"3M":16.7,"6M":4.3,"12M":52.9,"YTD":33.4,"2Y":null,"3Y":null}},"cum":{"0630":23.3,"0731":16.3,"0815":38.1,"0831":39.4,"0915":35.0,"0930":43.9},"vs":{"0630":-143.0,"0731":-90.9,"0815":-81.1,"0831":-74.8,"0915":-73.2,"0930":-70.9},"mon":[{"lab":"6월","v":-14.9,"b":0.0,"x":-14.9},{"lab":"7월","v":-5.7,"b":-22.2,"x":16.5},{"lab":"8월","v":19.9,"b":3.4,"x":16.5},{"lab":"9월","v":3.2,"b":0.3,"x":2.9}],"wins":3,"nm":4,"avgx":5.2,"jul":16.5,"ytd":33.4,"ytdbm":62.3,"ytdx":-28.9,"m12":52.9,"m12bm":99.7,"m12x":-46.8,"cumNow":43.9,"vsNow":-70.9,"hist":14.6,"turnAvg":51.9,"nsnap":6,"derived":[],"tags":[],"verdict":"방어형"},{"id":"dom:씨앗자산","m":"dom","name":"씨앗자산","brand":"씨앗자산","last":"0930","open":{"0630":"2023-09-07","0731":"2023-09-07","0815":"2023-09-07","0831":"2023-09-07","0915":"2023-09-07","0930":"2023-09-07"},"turn":{"0630":191.1,"0731":20.7,"0815":null,"0831":73.8,"0915":null,"0930":30.4},"ret":{"0630":{"1M":-19.0,"3M":2.6,"6M":11.2,"12M":27.5,"YTD":11.2,"2Y":43.6},"0731":{"1M":-18.1,"3M":-30.5,"6M":-17.8,"12M":8.0,"YTD":-4.2,"2Y":31.6,"3Y":null},"0815":{"MTD":15.4,"1M":3.7,"3M":-18.8,"6M":-7.3,"12M":21.7,"YTD":10.5,"2Y":59.2,"3Y":null},"0831":{"1M":15.6,"3M":-19.3,"6M":-13.6,"12M":24.2,"YTD":10.7,"2Y":58.6,"3Y":null},"0915":{"MTD":-0.8,"1M":-0.6,"3M":-15.1,"6M":-5.9,"12M":13.2,"YTD":9.8,"2Y":60.8,"3Y":81.9},"0930":{"1M":3.8,"3M":-1.8,"6M":6.1,"12M":19.7,"YTD":14.9,"2Y":65.9,"3Y":100.8}},"cum":{"0630":86.2,"0731":60.4,"0815":85.0,"0831":85.4,"0915":83.9,"0930":92.5},"vs":{"0630":-146.5,"0731":-98.4,"0815":-88.8,"0831":-82.3,"0915":-76.1,"0930":-75.9},"mon":[{"lab":"6월","v":-19.0,"b":0.0,"x":-19.0},{"lab":"7월","v":-18.1,"b":-22.2,"x":4.1},{"lab":"8월","v":15.6,"b":3.4,"x":12.2},{"lab":"9월","v":3.8,"b":0.3,"x":3.5}],"wins":3,"nm":4,"avgx":0.2,"jul":4.1,"ytd":14.9,"ytdbm":62.3,"ytdx":-47.4,"m12":19.7,"m12bm":99.7,"m12x":-80.0,"cumNow":92.5,"vsNow":-75.9,"hist":36.8,"turnAvg":79.0,"nsnap":6,"derived":[],"tags":[],"verdict":"방어형"},{"id":"us:디에스자산","m":"us","name":"디에스자산","brand":"디에스","last":"0930","open":{"0630":"2025-01-23","0731":"2025-01-23","0815":"2025-01-23","0831":"2025-01-23","0915":"2025-01-23","0930":"2025-01-23"},"turn":{"0630":9.7,"0731":20.2,"0815":null,"0831":93.7,"0915":null,"0930":10.0},"ret":{"0630":{"1M":13.8,"3M":90.1,"6M":99.1,"12M":72.8,"YTD":99.1,"2Y":null},"0731":{"1M":-28.7,"3M":0.8,"6M":27.5,"12M":20.4,"YTD":42.0,"2Y":null,"3Y":null},"0815":{"MTD":4.5,"1M":-14.6,"3M":-4.9,"6M":32.4,"12M":17.7,"YTD":48.4,"2Y":null,"3Y":null},"0831":{"1M":-4.3,"3M":-22.4,"6M":18.7,"12M":-0.3,"YTD":35.9,"2Y":null,"3Y":null},"0915":{"MTD":2.8,"1M":-5.8,"3M":-22.0,"6M":23.0,"12M":-7.3,"YTD":39.7,"2Y":null,"3Y":null},"0930":{"1M":7.6,"3M":-26.6,"6M":39.5,"12M":-4.9,"YTD":46.1,"2Y":null,"3Y":null}},"cum":{"0630":127.6,"0731":62.4,"0815":69.6,"0831":55.3,"0915":59.7,"0930":67.1},"vs":{"0630":104.4,"0731":39.3,"0815":41.7,"0831":29.1,"0915":35.1,"0930":41.4},"mon":[{"lab":"6월","v":13.8,"b":-1.1,"x":14.9},{"lab":"7월","v":-28.7,"b":-0.1,"x":-28.6},{"lab":"8월","v":-4.3,"b":2.6,"x":-6.9},{"lab":"9월","v":7.6,"b":-0.5,"x":8.1}],"wins":2,"nm":4,"avgx":-3.1,"jul":-28.6,"ytd":46.1,"ytdbm":11.8,"ytdx":34.3,"m12":-4.9,"m12bm":14.4,"m12x":-19.3,"cumNow":67.1,"vsNow":41.4,"hist":20.2,"turnAvg":33.4,"nsnap":6,"derived":["0831"],"tags":["7월급락"],"verdict":"고변동"},{"id":"us:캄투자일임","m":"us","name":"캄투자일임","brand":"캄투자일임","last":"0930","open":{"0630":"2025-04-03","0731":"2025-04-03","0815":"2025-04-03","0831":"2025-04-03","0915":"2025-04-03","0930":"2025-04-03"},"turn":{"0630":16.1,"0731":9.6,"0815":null,"0831":37.4,"0915":null,"0930":41.9},"ret":{"0630":{"1M":8.3,"3M":137.7,"6M":176.0,"12M":210.5,"YTD":176.0,"2Y":null},"0731":{"1M":-26.5,"3M":21.1,"6M":81.6,"12M":107.6,"YTD":102.8,"2Y":null,"3Y":null},"0815":{"MTD":14.8,"1M":-3.3,"3M":8.0,"6M":112.5,"12M":94.0,"YTD":132.8,"2Y":null,"3Y":null},"0831":{"1M":4.3,"3M":-17.0,"6M":78.4,"12M":65.3,"YTD":111.6,"2Y":null,"3Y":null},"0915":{"MTD":-1.8,"1M":-10.7,"3M":-18.6,"6M":67.5,"12M":36.7,"YTD":107.8,"2Y":null,"3Y":null},"0930":{"1M":8.2,"3M":-17.0,"6M":97.3,"12M":32.5,"YTD":129.1,"2Y":null,"3Y":null}},"cum":{"0630":349.5,"0731":230.3,"0815":279.0,"0831":244.6,"0915":238.3,"0930":273.1},"vs":{"0630":317.2,"0731":198.2,"0815":241.7,"0831":209.1,"0915":204.6,"0930":238.1},"mon":[{"lab":"6월","v":8.3,"b":-1.1,"x":9.4},{"lab":"7월","v":-26.5,"b":-0.1,"x":-26.4},{"lab":"8월","v":4.3,"b":2.6,"x":1.7},{"lab":"9월","v":8.2,"b":-0.5,"x":8.7}],"wins":3,"nm":4,"avgx":-1.6,"jul":-26.4,"ytd":129.1,"ytdbm":11.8,"ytdx":117.3,"m12":32.5,"m12bm":14.4,"m12x":18.1,"cumNow":273.1,"vsNow":238.1,"hist":17.9,"turnAvg":26.2,"nsnap":6,"derived":[],"tags":["7월급락"],"verdict":"우수"},{"id":"us:에픽투자일임","m":"us","name":"에픽투자일임","brand":"에픽투자일임","last":"0930","open":{"0630":"2026-01-23","0731":"2026-01-23","0815":"2026-01-23","0831":"2026-01-23","0915":"2026-01-23","0930":"2026-01-23"},"turn":{"0630":7.5,"0731":11.5,"0815":null,"0831":71.6,"0915":null,"0930":23.0},"ret":{"0630":{"1M":6.8,"3M":22.7,"6M":null,"12M":null,"YTD":null,"2Y":null},"0731":{"1M":-31.2,"3M":-20.3,"6M":-22.3,"12M":null,"YTD":null,"2Y":null,"3Y":null},"0815":{"MTD":5.3,"1M":-11.9,"3M":-18.8,"6M":-18.0,"12M":null,"YTD":null,"2Y":null,"3Y":null},"0831":{"1M":-4.7,"3M":-30.0,"6M":-27.2,"12M":null,"YTD":null,"2Y":null,"3Y":null},"0915":{"MTD":-14.0,"1M":-22.1,"3M":-40.6,"6M":-32.0,"12M":null,"YTD":null,"2Y":null,"3Y":null},"0930":{"1M":-3.7,"3M":-36.8,"6M":-22.5,"12M":null,"YTD":null,"2Y":null,"3Y":null}},"cum":{"0630":9.3,"0731":-24.8,"0815":-20.8,"0831":-28.3,"0915":-38.3,"0930":-31.0},"vs":{"0630":0.9,"0731":-33.1,"0815":-33.4,"0831":-39.4,"0915":-48.0,"0930":-41.6},"mon":[{"lab":"6월","v":6.8,"b":-1.1,"x":7.9},{"lab":"7월","v":-31.2,"b":-0.1,"x":-31.1},{"lab":"8월","v":-4.7,"b":2.6,"x":-7.3},{"lab":"9월","v":-3.7,"b":-0.5,"x":-3.2}],"wins":1,"nm":4,"avgx":-8.4,"jul":-31.1,"ytd":null,"ytdbm":11.8,"ytdx":null,"m12":null,"m12bm":14.4,"m12x":null,"cumNow":-31.0,"vsNow":-41.6,"hist":8.2,"turnAvg":28.4,"nsnap":6,"derived":["0831"],"tags":["7월급락"],"verdict":"관찰"},{"id":"us:코어트렌드","m":"us","name":"코어트렌드","brand":"코어트렌드","last":"0930","open":{"0630":"2025-12-08","0731":"2025-12-08","0815":"2025-12-08","0831":"2025-12-08","0915":"2025-12-08","0930":"2025-12-08"},"turn":{"0630":29.1,"0731":9.1,"0815":null,"0831":73.8,"0915":null,"0930":39.7},"ret":{"0630":{"1M":6.5,"3M":42.9,"6M":66.5,"12M":null,"YTD":66.5,"2Y":null},"0731":{"1M":-23.4,"3M":-8.6,"6M":16.1,"12M":null,"YTD":27.6,"2Y":null,"3Y":null},"0815":{"MTD":10.8,"1M":-4.6,"3M":-8.7,"6M":23.0,"12M":null,"YTD":41.5,"2Y":null,"3Y":null},"0831":{"1M":-2.5,"3M":-20.4,"6M":4.9,"12M":null,"YTD":24.5,"2Y":null,"3Y":null},"0915":{"MTD":-3.6,"1M":-15.2,"3M":-23.7,"6M":-0.4,"12M":null,"YTD":20.0,"2Y":null,"3Y":null},"0930":{"1M":9.7,"3M":-18.0,"6M":17.2,"12M":null,"YTD":36.5,"2Y":null,"3Y":null}},"cum":{"0630":59.3,"0731":22.1,"0815":35.3,"0831":19.1,"0915":14.8,"0930":30.6},"vs":{"0630":50.2,"0731":13.1,"0815":22.0,"0831":7.2,"0915":4.4,"0930":19.3},"mon":[{"lab":"6월","v":6.5,"b":-1.1,"x":7.6},{"lab":"7월","v":-23.4,"b":-0.1,"x":-23.3},{"lab":"8월","v":-2.5,"b":2.6,"x":-5.1},{"lab":"9월","v":9.7,"b":-0.5,"x":10.2}],"wins":2,"nm":4,"avgx":-2.7,"jul":-23.3,"ytd":36.5,"ytdbm":11.8,"ytdx":24.7,"m12":null,"m12bm":14.4,"m12x":null,"cumNow":30.6,"vsNow":19.3,"hist":9.7,"turnAvg":37.9,"nsnap":6,"derived":[],"tags":["7월급락"],"verdict":"고변동"},{"id":"us:토러스자산","m":"us","name":"토러스자산","brand":"토러스","last":"0930","open":{"0630":"2024-02-28","0731":"2024-02-28","0815":"2024-02-28","0831":"2024-02-28","0915":"2024-02-28","0930":"2024-02-28"},"turn":{"0630":61.9,"0731":347.8,"0815":null,"0831":2.7,"0915":null,"0930":14.1},"ret":{"0630":{"1M":-4.0,"3M":51.7,"6M":70.4,"12M":132.1,"YTD":70.4,"2Y":167.3},"0731":{"1M":-27.7,"3M":-11.3,"6M":6.3,"12M":44.0,"YTD":23.2,"2Y":121.5,"3Y":null},"0815":{"MTD":5.6,"1M":-9.9,"3M":-25.6,"6M":10.4,"12M":42.6,"YTD":30.2,"2Y":129.1,"3Y":null},"0831":{"1M":-3.5,"3M":-33.0,"6M":-2.4,"12M":22.5,"YTD":19.0,"2Y":107.8,"3Y":null},"0915":{"MTD":-3.3,"1M":-11.6,"3M":-32.3,"6M":-5.1,"12M":4.0,"YTD":15.1,"2Y":91.3,"3Y":null},"0930":{"1M":2.5,"3M":-28.4,"6M":8.6,"12M":1.2,"YTD":22.0,"2Y":85.2,"3Y":null}},"cum":{"0630":310.7,"0731":197.0,"0815":213.8,"0831":186.7,"0915":177.4,"0930":194.0},"vs":{"0630":262.8,"0731":149.3,"0815":160.2,"0831":135.2,"0915":127.7,"0930":143.1},"mon":[{"lab":"6월","v":-4.0,"b":-1.1,"x":-2.9},{"lab":"7월","v":-27.7,"b":-0.1,"x":-27.6},{"lab":"8월","v":-3.5,"b":2.6,"x":-6.1},{"lab":"9월","v":2.5,"b":-0.5,"x":3.0}],"wins":1,"nm":4,"avgx":-8.4,"jul":-27.6,"ytd":22.0,"ytdbm":11.8,"ytdx":10.2,"m12":1.2,"m12bm":14.4,"m12x":-13.2,"cumNow":194.0,"vsNow":143.1,"hist":31.1,"turnAvg":106.6,"nsnap":6,"derived":["0831"],"tags":["고회전","7월급락"],"verdict":"고변동"},{"id":"cn:플레인바닐라","m":"cn","name":"플레인바닐라","brand":"플레인바닐라","last":"0815","open":{"0630":"2025-10-30","0731":"2025-10-30","0815":"2025-10-30"},"turn":{"0630":27.3,"0731":28.9,"0815":null},"ret":{"0630":{"1M":-0.2,"3M":30.0,"6M":24.3,"12M":null,"YTD":24.3,"2Y":null},"0731":{"1M":-17.2,"3M":-9.2,"6M":-5.3,"12M":null,"YTD":2.9,"2Y":null,"3Y":null},"0815":{"MTD":7.7,"1M":0.1,"3M":-7.6,"6M":2.7,"12M":null,"YTD":10.8,"2Y":null,"3Y":null}},"cum":{"0630":18.9,"0731":-1.6,"0815":6.0},"vs":{"0630":17.0,"0731":0.3,"0815":8.2},"mon":[{"lab":"6월","v":-0.2,"b":0.6,"x":-0.8},{"lab":"7월","v":-17.2,"b":-6.4,"x":-10.8}],"wins":0,"nm":2,"avgx":-5.8,"jul":-10.8,"ytd":10.8,"ytdbm":-1.1,"ytdx":11.9,"m12":null,"m12bm":null,"m12x":null,"cumNow":6.0,"vsNow":8.2,"hist":9.5,"turnAvg":28.1,"nsnap":3,"derived":[],"tags":[],"verdict":"관찰"},{"id":"mix:에픽투자일임","m":"mix","name":"에픽투자일임","brand":"에픽투자일임","last":"0930","open":{"0630":"2026-04-23","0731":"2026-04-23","0815":"2026-04-23","0831":"2026-04-23","0915":"2026-04-23","0930":"2026-04-23"},"turn":{"0630":293.2,"0731":558.8,"0815":null,"0831":1572.0,"0915":null,"0930":529.7},"ret":{"0630":{"1M":-0.4,"3M":null,"6M":null,"12M":null,"YTD":null,"2Y":null},"0731":{"1M":-24.0,"3M":-13.8,"6M":null,"12M":null,"YTD":null,"2Y":null,"3Y":null},"0815":{"MTD":7.5,"1M":-4.0,"3M":-11.7,"6M":null,"12M":null,"YTD":null,"2Y":null,"3Y":null},"0831":{"1M":-18.0,"3M":-37.9,"6M":null,"12M":null,"YTD":null,"2Y":null,"3Y":null},"0915":{"MTD":-17.8,"1M":-37.3,"3M":-50.8,"6M":null,"12M":null,"YTD":null,"2Y":null,"3Y":null},"0930":{"1M":-4.8,"3M":-40.7,"6M":null,"12M":null,"YTD":null,"2Y":null,"3Y":null}},"cum":{"0630":17.1,"0731":-11.0,"0815":-4.3,"0831":-27.0,"0915":-40.0,"0930":-30.5},"vs":{"0630":-1.5,"0731":5.6,"0815":-13.2,"0831":-33.9,"0915":-44.8,"0930":-37.4},"mon":[{"lab":"6월","v":-0.4,"b":-0.5,"x":0.1},{"lab":"7월","v":-24.0,"b":-11.2,"x":-12.8},{"lab":"8월","v":-18.0,"b":3.0,"x":-21.0},{"lab":"9월","v":-4.8,"b":-0.1,"x":-4.7}],"wins":1,"nm":4,"avgx":-9.6,"jul":-12.8,"ytd":null,"ytdbm":null,"ytdx":null,"m12":null,"m12bm":null,"m12x":null,"cumNow":-30.5,"vsNow":-37.4,"hist":5.2,"turnAvg":738.4,"nsnap":6,"derived":["0831"],"tags":["단기이력","고회전"],"verdict":"관찰"},{"id":"dom:솔루션퀀트(voida 4호)","m":"dom","name":"솔루션퀀트(voida 4호)","brand":"솔루션퀀트","last":"0930","open":{"0731":"2023-02-22","0815":"2023-02-22","0831":"2026-04-01","0915":"2025-08-14","0930":"2025-08-14"},"turn":{"0731":31.6,"0815":null,"0831":71.6,"0915":null,"0930":78.3},"ret":{"0731":{"1M":-25.4,"3M":-5.1,"6M":null,"12M":null,"YTD":null,"2Y":null,"3Y":null},"0815":{"MTD":10.1,"1M":-7.3,"3M":-9.2,"6M":null,"12M":null,"YTD":null,"2Y":null,"3Y":null},"0831":{"1M":7.2,"3M":-20.8,"6M":null,"12M":null,"YTD":null,"2Y":null,"3Y":null},"0915":{"MTD":-7.5,"1M":-10.0,"3M":-28.4,"6M":18.2,"12M":72.6,"YTD":50.1,"2Y":null,"3Y":null},"0930":{"1M":2.6,"3M":-18.2,"6M":39.6,"12M":88.2,"YTD":66.6,"2Y":null,"3Y":null}},"cum":{"0731":27.9,"0815":40.8,"0831":37.2,"0915":77.4,"0930":96.8},"vs":{"0731":-2.6,"0815":2.7,"0831":2.2,"0915":-28.1,"0930":-15.2},"mon":[{"lab":"7월","v":-25.4,"b":-22.2,"x":-3.2},{"lab":"8월","v":7.2,"b":3.4,"x":3.8},{"lab":"9월","v":2.6,"b":0.3,"x":2.3}],"wins":2,"nm":3,"avgx":1.0,"jul":-3.2,"ytd":66.6,"ytdbm":62.3,"ytdx":4.3,"m12":88.2,"m12bm":99.7,"m12x":-11.5,"cumNow":96.8,"vsNow":-15.2,"hist":13.5,"turnAvg":60.5,"nsnap":5,"derived":[],"tags":["계좌변경"],"verdict":"양호"},{"id":"dom:더블유자산운용","m":"dom","name":"더블유자산운용","brand":"더블유자산운용","last":"0930","open":{"0731":"2026-01-16","0831":"2026-01-16","0930":"2026-01-16"},"turn":{"0731":24.8,"0831":48.7,"0930":14.0},"ret":{"0731":{"1M":-32.5,"3M":-9.6,"6M":-6.4,"12M":null,"YTD":null,"2Y":null,"3Y":null},"0831":{"1M":1.9,"3M":-33.5,"6M":-15.4,"12M":null,"YTD":null,"2Y":null,"3Y":null},"0930":{"1M":2.4,"3M":-17.1,"6M":32.6,"12M":null,"YTD":null,"2Y":null,"3Y":null}},"cum":{"0731":0.3,"0831":2.2,"0930":32.6},"vs":{"0731":-37.2,"0831":-40.0,"0930":7.7},"mon":[{"lab":"7월","v":-32.5,"b":-22.2,"x":-10.3},{"lab":"8월","v":1.9,"b":3.4,"x":-1.5},{"lab":"9월","v":2.4,"b":0.3,"x":2.1}],"wins":1,"nm":3,"avgx":-3.2,"jul":-10.3,"ytd":null,"ytdbm":62.3,"ytdx":null,"m12":null,"m12bm":99.7,"m12x":null,"cumNow":32.6,"vsNow":7.7,"hist":8.5,"turnAvg":29.2,"nsnap":3,"derived":[],"tags":[],"verdict":"관찰"},{"id":"us:솔루션퀀트(voida u.s)","m":"us","name":"솔루션퀀트(voida u.s)","brand":"솔루션퀀트","last":"0930","open":{"0731":"2026-04-01","0815":"2026-04-01","0831":"2026-04-01","0915":"2026-03-16","0930":"2026-03-16"},"turn":{"0731":37.6,"0815":null,"0831":103.3,"0915":null,"0930":29.6},"ret":{"0731":{"1M":-16.3,"3M":10.9,"6M":null,"12M":null,"YTD":null,"2Y":null,"3Y":null},"0815":{"MTD":9.5,"1M":-2.4,"3M":-3.2,"6M":null,"12M":null,"YTD":null,"2Y":null,"3Y":null},"0831":{"1M":0.0,"3M":-11.1,"6M":null,"12M":null,"YTD":null,"2Y":null,"3Y":null},"0915":{"MTD":-1.1,"1M":-9.7,"3M":-14.3,"6M":26.6,"12M":null,"YTD":null,"2Y":null,"3Y":null},"0930":{"1M":7.3,"3M":-10.3,"6M":52.3,"12M":null,"YTD":null,"2Y":null,"3Y":null}},"cum":{"0731":42.0,"0815":55.5,"0831":42.0,"0915":26.6,"0930":37.4},"vs":{"0731":27.3,"0815":36.2,"0831":24.2,"0915":13.4,"0930":23.2},"mon":[{"lab":"7월","v":-16.3,"b":-0.1,"x":-16.2},{"lab":"8월","v":0.0,"b":2.6,"x":-2.6},{"lab":"9월","v":7.3,"b":-0.5,"x":7.8}],"wins":1,"nm":3,"avgx":-3.7,"jul":-16.2,"ytd":null,"ytdbm":11.8,"ytdx":null,"m12":null,"m12bm":14.4,"m12x":null,"cumNow":37.4,"vsNow":23.2,"hist":6.5,"turnAvg":56.8,"nsnap":5,"derived":[],"tags":["계좌변경","7월급락"],"verdict":"관찰"},{"id":"us:스마일게이트","m":"us","name":"스마일게이트","brand":"스마일게이트","last":"0930","open":{"0731":"2026-06-08","0815":"2026-06-08","0831":"2026-06-08","0915":"2026-06-08","0930":"2026-06-08"},"turn":{"0731":20.7,"0815":null,"0831":143.6,"0915":null,"0930":158.6},"ret":{"0731":{"1M":-28.7,"3M":null,"6M":null,"12M":null,"YTD":null,"2Y":null,"3Y":null},"0815":{"MTD":11.7,"1M":-8.8,"3M":null,"6M":null,"12M":null,"YTD":null,"2Y":null,"3Y":null},"0831":{"1M":-4.4,"3M":null,"6M":null,"12M":null,"YTD":null,"2Y":null,"3Y":null},"0915":{"MTD":-0.1,"1M":-14.4,"3M":-27.1,"6M":null,"12M":null,"YTD":null,"2Y":null,"3Y":null},"0930":{"1M":16.0,"3M":-21.0,"6M":null,"12M":null,"YTD":null,"2Y":null,"3Y":null}},"cum":{"0731":-19.7,"0815":-10.4,"0831":-23.3,"0915":-23.3,"0930":-11.0},"vs":{"0731":-20.9,"0815":-15.5,"0831":-27.0,"0915":-25.8,"0930":-14.3},"mon":[{"lab":"7월","v":-28.7,"b":-0.1,"x":-28.6},{"lab":"8월","v":-4.4,"b":2.6,"x":-7.0},{"lab":"9월","v":16.0,"b":-0.5,"x":16.5}],"wins":1,"nm":3,"avgx":-6.4,"jul":-28.6,"ytd":null,"ytdbm":11.8,"ytdx":null,"m12":null,"m12bm":14.4,"m12x":null,"cumNow":-11.0,"vsNow":-14.3,"hist":3.7,"turnAvg":107.6,"nsnap":5,"derived":["0831"],"tags":["단기이력","고회전","7월급락"],"verdict":"관찰"},{"id":"dom:스노우볼","m":"dom","name":"스노우볼","brand":"스노우볼","last":"0930","open":{"0915":"2025-06-23","0930":"2025-06-23"},"turn":{"0915":null,"0930":29.6},"ret":{"0915":{"MTD":2.0,"1M":0.2,"3M":4.5,"6M":62.9,"12M":296.4,"YTD":131.2,"2Y":null,"3Y":null},"0930":{"1M":5.9,"3M":11.6,"6M":81.1,"12M":307.0,"YTD":140.0,"2Y":null,"3Y":null}},"cum":{"0915":335.7,"0930":352.4},"vs":{"0915":215.8,"0930":225.5},"mon":[{"lab":"9월","v":5.9,"b":0.3,"x":5.6}],"wins":1,"nm":1,"avgx":5.6,"jul":null,"ytd":140.0,"ytdbm":62.3,"ytdx":77.7,"m12":307.0,"m12bm":99.7,"m12x":207.3,"cumNow":352.4,"vsNow":225.5,"hist":15.2,"turnAvg":29.6,"nsnap":2,"derived":[],"tags":[],"verdict":"관찰"},{"id":"dom:유니스토리","m":"dom","name":"유니스토리","brand":"유니스토리","last":"0930","open":{"0915":"2024-09-25","0930":"2024-09-25"},"turn":{"0915":null,"0930":41.9},"ret":{"0915":{"MTD":0.8,"1M":-1.7,"3M":-26.7,"6M":29.4,"12M":104.4,"YTD":59.8,"2Y":null,"3Y":null},"0930":{"1M":7.2,"3M":-19.2,"6M":44.9,"12M":109.5,"YTD":70.0,"2Y":198.4,"3Y":null}},"cum":{"0915":182.1,"0930":200.1},"vs":{"0915":26.8,"0930":36.8},"mon":[{"lab":"9월","v":7.2,"b":0.3,"x":6.9}],"wins":1,"nm":1,"avgx":6.9,"jul":null,"ytd":70.0,"ytdbm":62.3,"ytdx":7.7,"m12":109.5,"m12bm":99.7,"m12x":9.8,"cumNow":200.1,"vsNow":36.8,"hist":24.2,"turnAvg":41.9,"nsnap":2,"derived":[],"tags":[],"verdict":"관찰"},{"id":"dom:두나무","m":"dom","name":"두나무","brand":"두나무","last":"0930","open":{"0915":"2026-06-18","0930":"2026-06-18"},"turn":{"0915":null,"0930":39.7},"ret":{"0915":{"MTD":-4.8,"1M":-4.7,"3M":null,"6M":null,"12M":null,"YTD":null,"2Y":null,"3Y":null},"0930":{"1M":-0.6,"3M":-21.4,"6M":null,"12M":null,"YTD":null,"2Y":null,"3Y":null}},"cum":{"0915":-28.2,"0930":-25.1},"vs":{"0915":-1.3,"0930":-0.5},"mon":[{"lab":"9월","v":-0.6,"b":0.3,"x":-0.9}],"wins":0,"nm":1,"avgx":-0.9,"jul":null,"ytd":null,"ytdbm":62.3,"ytdx":null,"m12":null,"m12bm":99.7,"m12x":null,"cumNow":-25.1,"vsNow":-0.5,"hist":3.4,"turnAvg":39.7,"nsnap":2,"derived":[],"tags":["단기이력"],"verdict":"관찰"},{"id":"dom:칸서스자산(김명선매니저)","m":"dom","name":"칸서스자산(김명선매니저)","brand":"칸서스자산","last":"0930","open":{"0915":"2026-03-03","0930":"2026-03-03"},"turn":{"0915":null,"0930":66.2},"ret":{"0915":{"MTD":-5.0,"1M":-8.6,"3M":-40.7,"6M":-23.3,"12M":null,"YTD":null,"2Y":null,"3Y":null},"0930":{"1M":-0.8,"3M":-39.4,"6M":-7.6,"12M":null,"YTD":null,"2Y":null,"3Y":null}},"cum":{"0915":-26.1,"0930":-22.8},"vs":{"0915":-40.5,"0930":-40.9},"mon":[{"lab":"9월","v":-0.8,"b":0.3,"x":-1.1}],"wins":0,"nm":1,"avgx":-1.1,"jul":null,"ytd":null,"ytdbm":62.3,"ytdx":null,"m12":null,"m12bm":99.7,"m12x":null,"cumNow":-22.8,"vsNow":-40.9,"hist":6.9,"turnAvg":66.2,"nsnap":2,"derived":[],"tags":[],"verdict":"관찰"},{"id":"dom:씨스퀘어","m":"dom","name":"씨스퀘어","brand":"씨스퀘어","last":"0930","open":{"0915":"2026-06-23","0930":"2026-06-23"},"turn":{"0915":null,"0930":23.0},"ret":{"0915":{"MTD":-5.0,"1M":-9.1,"3M":null,"6M":null,"12M":null,"YTD":null,"2Y":null,"3Y":null},"0930":{"1M":4.9,"3M":-27.3,"6M":null,"12M":null,"YTD":null,"2Y":null,"3Y":null}},"cum":{"0915":-31.1,"0930":-23.9},"vs":{"0915":-11.9,"0930":-7.3},"mon":[{"lab":"9월","v":4.9,"b":0.3,"x":4.6}],"wins":1,"nm":1,"avgx":4.6,"jul":null,"ytd":null,"ytdbm":62.3,"ytdx":null,"m12":null,"m12bm":99.7,"m12x":null,"cumNow":-23.9,"vsNow":-7.3,"hist":3.2,"turnAvg":23.0,"nsnap":2,"derived":[],"tags":["단기이력"],"verdict":"관찰"},{"id":"us:씨스퀘어","m":"us","name":"씨스퀘어","brand":"씨스퀘어","last":"0930","open":{"0915":"2026-07-16","0930":"2026-07-16"},"turn":{"0915":null,"0930":30.4},"ret":{"0915":{"MTD":-7.4,"1M":-13.7,"3M":null,"6M":null,"12M":null,"YTD":null,"2Y":null,"3Y":null},"0930":{"1M":-4.6,"3M":null,"6M":null,"12M":null,"YTD":null,"2Y":null,"3Y":null}},"cum":{"0915":-18.1,"0930":-15.7},"vs":{"0915":-18.8,"0930":-17.2},"mon":[{"lab":"9월","v":-4.6,"b":-0.5,"x":-4.1}],"wins":0,"nm":1,"avgx":-4.1,"jul":null,"ytd":null,"ytdbm":11.8,"ytdx":null,"m12":null,"m12bm":14.4,"m12x":null,"cumNow":-15.7,"vsNow":-17.2,"hist":2.5,"turnAvg":30.4,"nsnap":2,"derived":[],"tags":["단기이력"],"verdict":"관찰"},{"id":"mix:아크미스","m":"mix","name":"아크미스","brand":"아크미스","last":"0930","open":{"0915":"2026-05-08","0930":"2026-05-08"},"turn":{"0915":null,"0930":17.2},"ret":{"0915":{"MTD":-0.9,"1M":-8.0,"3M":-22.2,"6M":null,"12M":null,"YTD":null,"2Y":null,"3Y":null},"0930":{"1M":9.6,"3M":-17.7,"6M":null,"12M":null,"YTD":null,"2Y":null,"3Y":null}},"cum":{"0915":0.5,"0930":11.0},"vs":{"0915":5.0,"0930":13.7},"mon":[{"lab":"9월","v":9.6,"b":-0.1,"x":9.7}],"wins":1,"nm":1,"avgx":9.7,"jul":null,"ytd":null,"ytdbm":null,"ytdx":null,"m12":null,"m12bm":null,"m12x":null,"cumNow":11.0,"vsNow":13.7,"hist":4.7,"turnAvg":17.2,"nsnap":2,"derived":[],"tags":["단기이력"],"verdict":"관찰"}],"stats":{"monthObs":141,"monthWins":70,"winRate":50,"ytdBeat":12,"ytdN":26,"persist":{"6-7":[-0.34,31],"7-8":[0.45,34],"8-9":[0.05,34]},"lowTurn":{"n":7,"avg":30.9},"hiTurn":{"n":3,"avg":-24.4},"domYtd":{"0630":{"n":14,"beat":6,"median":65.35,"bm":101.1},"0831":{"n":14,"beat":3,"median":45.3,"bm":61.8},"0915":{"n":22,"beat":7,"median":45.25,"bm":57.3},"0930":{"n":22,"beat":8,"median":49.8,"bm":62.3}}}};
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const GORDER=["dom","cn","us","glb"];
+const lab=k=>k.slice(0,2)+"."+k.slice(2);
+const SNAPLABEL=Object.fromEntries(W.snapOrder.map(k=>[k,"2026."+lab(k)]));
+const sgn=(v,d=2)=>v==null?'<span class="na">–</span>':v===0?'<span class="num">0.00</span>':`<span class="num ${v>0?'up':'dn'}">${v>0?'▲':'▼'}${Math.abs(v).toFixed(d)}</span>`;
+const pp=(v,d=2)=>v==null?'<span class="na">–</span>':`<span class="num ${v>0?'up':v<0?'dn':''}">${v>0?'+':v<0?'−':''}${Math.abs(v).toFixed(d)}</span>`;
+const sgnT=(v,d=2)=>v==null?"–":(v>0?"+":v<0?"−":"")+Math.abs(v).toFixed(d)+"%";
+const sgnP=(v,d=1)=>v==null?"–":(v>0?"+":v<0?"−":"")+Math.abs(v).toFixed(d)+"%p";
+function seg(el,items,get,set){
+  el.innerHTML=items.map(([k,l])=>`<button type="button" data-k="${k}" aria-pressed="${String(get())===String(k)}">${l}</button>`).join("");
+  el.onclick=e=>{const b=e.target.closest("button"); if(b) set(b.dataset.k);};
+}
+/* tooltip */
+const tip=$("#tip");
+document.addEventListener("pointermove",e=>{
+  const r=e.target.closest&&e.target.closest("[data-tip]");
+  if(!r){tip.style.display="none";return;}
+  tip.innerHTML=r.dataset.tip; tip.style.display="block";
+  const w=tip.offsetWidth,h=tip.offsetHeight; let x=e.clientX+14,y=e.clientY+14;
+  if(x+w>innerWidth-8) x=e.clientX-w-14; if(y+h>innerHeight-8) y=e.clientY-h-14;
+  tip.style.left=Math.max(8,x)+"px"; tip.style.top=Math.max(8,y)+"px";
+});
+document.addEventListener("scroll",()=>tip.style.display="none",true);
+function mkScale(vals,pad=.06){
+  let lo=Math.min(0,...vals),hi=Math.max(0,...vals); const span=(hi-lo)||1; lo-=span*pad*(lo<0?1:0); hi+=span*pad*(hi>0?1:0);
+  const f=v=>((v-lo)/(hi-lo))*100; return {lo,hi,f,z:f(0)};
+}
+function niceTicks(lo,hi){
+  const span=hi-lo; const raw=span/5; const mag=Math.pow(10,Math.floor(Math.log10(raw)));
+  const step=[1,2,2.5,5,10].map(m=>m*mag).find(s=>s>=raw); const t=[];
+  for(let v=Math.ceil(lo/step)*step; v<=hi+1e-9; v+=step) t.push(+v.toFixed(6)); return t;
+}
+const axisHTML=(sc,unit)=>`<div class="scale"><div></div><div class="ax">${niceTicks(sc.lo,sc.hi).map(t=>`<span style="left:${sc.f(t)}%">${t}</span>`).join("")}</div><div style="text-align:right">${unit}</div></div>`;
+function barRow(name,sub,v,sc,bm,tipHtml,hl,valHtml){
+  const bar=v==null?"":(v>=0?`<div class="b up" style="left:${sc.z}%;width:${Math.max(sc.f(v)-sc.z,.4)}%"></div>`:`<div class="b dn" style="left:${sc.f(v)}%;width:${Math.max(sc.z-sc.f(v),.4)}%"></div>`);
+  const bmk=bm==null?"":`<i class="bm" style="left:${sc.f(bm)}%"></i>`;
+  return `<div class="row" data-tip="${esc(tipHtml)}"><div class="nm">${esc(name)}${sub?`<small>${esc(sub)}</small>`:""}</div><div class="trk"><div class="zero" style="left:${sc.z}%"></div>${bar}${bmk}</div><div class="val ${hl?'hl':''}">${valHtml||sgn(v)}</div></div>`;
+}
+function heat(v,k=60){ if(v==null) return ""; const a=Math.min(Math.abs(v)/k,1)*.22; return `background:${v>0?`rgba(198,47,47,${a})`:`rgba(31,95,184,${a})`}`; }
+
+/* =============== 본사형 =============== */
+const ws={snap:"0930",period:"YTD",sort:"group",metric:"YTD",tab:"ret"};
+const HL={"0930":{"orbis":"YTD","us_sapiens":"YTD"}};
+const wrapsFor=s=>W.wraps.filter(w=>w.snaps[s]);
+const bmCum=(w,s)=>{const x=w.snaps[s]; return x.cum==null||x.vsBM==null?null:+(x.cum-x.vsBM).toFixed(2);};
+const hasBal=s=>W.wraps.some(w=>w.snaps[s]&&w.snaps[s].balance!=null);
+function wS1(){
+  const snap=ws.snap,p=ws.period;
+  const items=wrapsFor(snap).map(w=>{const s=w.snaps[snap]; const v=p==="누적"?s.cum:s.ret[p]; const bm=p==="누적"?bmCum(w,snap):W.bmSeries[w.group][snap].ret[p]; return {w,v,bm};});
+  const sc=mkScale(items.flatMap(i=>[i.v,i.bm]).filter(x=>x!=null));
+  const pl=p==="누적"?"운용 개시 이후 누적":p;
+  $("#s1t").textContent=`${SNAPLABEL[snap]} 기준 ${pl} 수익률`;
+  $("#s1p").textContent=p==="누적"?"BM 값은 누적 수익률에서 BM 대비 값을 뺀 역산입니다.":"마름모는 같은 기간 해당 구분의 벤치마크 수익률입니다. 운용 기간이 짧아 값이 없는 칸은 비워 둡니다.";
+  let h=axisHTML(sc,"%");
+  const groups=ws.sort==="rank"?[{g:null,items:[...items].sort((a,b)=>(b.v??-1e9)-(a.v??-1e9))}]:GORDER.map(g=>({g,items:items.filter(i=>i.w.group===g)})).filter(x=>x.items.length);
+  for(const grp of groups){
+    if(grp.g) h+=`<div class="grp">${W.groups[grp.g]} · BM ${esc(W.bm[grp.g])}</div>`;
+    h+=grp.items.map(i=>{
+      const t=`<b>${esc(i.w.name)}</b><br>${pl} ${sgnT(i.v)}<br>BM(${esc(W.bm[i.w.group])}) ${sgnT(i.bm)}${(i.v!=null&&i.bm!=null)?`<br>BM 대비 ${sgnP(i.v-i.bm,2)}`:""}`;
+      return barRow(i.w.short,ws.sort==="rank"?W.groups[i.w.group]:"",i.v,sc,i.bm,t,(HL[snap]||{})[i.w.id]===p);
+    }).join("");
+  }
+  $("#c1").innerHTML=h; chgMark("#c1",groups.flatMap(g=>g.items.map(i=>i.w.id)));
+}
+function wS2(){
+  const snap=ws.snap; const items=wrapsFor(snap).map(w=>({w,v:w.snaps[snap].vsBM})); const sc=mkScale(items.map(i=>i.v).filter(x=>x!=null));
+  let h=axisHTML(sc,"%p");
+  for(const g of GORDER){ const gi=items.filter(i=>i.w.group===g); if(!gi.length) continue;
+    h+=`<div class="grp">${W.groups[g]} · BM ${esc(W.bm[g])}</div>`;
+    h+=gi.map(i=>{const s=i.w.snaps[snap];
+      const t=`<b>${esc(i.w.name)}</b><br>누적 ${sgnT(s.cum)}<br>BM 누적 ${sgnT(bmCum(i.w,snap))}<br>BM 대비 ${sgnP(i.v,2)}<br>운용개시 ${s.open}`;
+      return barRow(i.w.short,"개시 "+s.open.replace(/-/g,"."),i.v,sc,null,t,false);}).join(""); }
+  $("#c2").innerHTML=h;
+}
+function wS3(){
+  const m=ws.metric, S=W.snapOrder;
+  const get=(w,k)=>{const s=w.snaps[k]; if(!s) return null; return m==="누적"?s.cum:s.ret.YTD;};
+  let h=`<table class="heatw"><thead><tr><th>랩 상품</th>${S.map(k=>`<th>${lab(k)}</th>`).join("")}<th>추이</th><th>09.30−06.30</th></tr></thead><tbody>`;
+  for(const g of GORDER){ const gi=W.wraps.filter(w=>w.group===g); if(!gi.length) continue;
+    h+=`<tr class="gh"><td colspan="${S.length+3}">${W.groups[g]}</td></tr>`;
+    for(const w of gi){
+      const vals=S.map(k=>get(w,k)); const nn=vals.filter(v=>v!=null);
+      let sp=""; if(nn.length>1){ const lo=Math.min(...nn),hi=Math.max(...nn),sp0=(hi-lo)||1; const pts=vals.map((v,i)=>v==null?null:[4+i*(72/(S.length-1)),22-((v-lo)/sp0)*18]).filter(Boolean);
+        sp=`<svg class="spark" width="80" height="26" viewBox="0 0 80 26" aria-hidden="true"><polyline fill="none" stroke="var(--accent)" stroke-width="1.5" points="${pts.map(p=>p.join(",")).join(" ")}"/><circle cx="${pts[pts.length-1][0]}" cy="${pts[pts.length-1][1]}" r="2.2" fill="var(--accent)"/></svg>`; }
+      const a=vals[0],b=vals[S.length-1]; const d=(a==null||b==null)?null:b-a;
+      h+=`<tr><td>${esc(w.short)}</td>${vals.map(v=>`<td class="c" style="${heat(v)}">${sgn(v)}</td>`).join("")}<td>${sp}</td><td class="num">${pp(d)}</td></tr>`;
+    }
+  }
+  h+="</tbody></table>";
+  $("#c3").innerHTML=h;
+}
+function wS4(){
+  const bs=W.snapOrder.filter(hasBal); const snap=hasBal(ws.snap)?ws.snap:"0930";
+  const wl=wrapsFor(snap).filter(w=>w.snaps[snap].balance!=null);
+  const tot=wl.reduce((a,w)=>a+w.snaps[snap].balance,0);
+  $("#s4p").textContent=`${SNAPLABEL[snap]} 기준 구분별 평가금액 비중입니다. 평가금액이 표에 있는 날짜는 ${bs.map(lab).join(", ")}뿐이라 다른 기준일을 고르면 09.30을 보여 줍니다.`.replace("다른 기준일을 고르면 09.30을 보여 줍니다.",hasBal(ws.snap)?"":"다른 기준일을 고르면 09.30을 보여 줍니다.");
+  /* trend table */
+  let t=`<table><thead><tr><th>구분</th>${bs.map(k=>`<th>${lab(k)} 억원</th><th>건</th>`).join("")}<th>변화(억)</th></tr></thead><tbody>`;
+  const sum=(k,g)=>{const x=W.wraps.filter(w=>w.snaps[k]&&w.snaps[k].balance!=null&&(!g||w.group===g)); return [x.reduce((a,w)=>a+w.snaps[k].balance,0),x.reduce((a,w)=>a+w.snaps[k].contracts,0)];};
+  for(const g of [...GORDER,null]){ const row=bs.map(k=>sum(k,g)); const d=row[row.length-1][0]-row[0][0];
+    t+=`<tr class="${g?'':'bmr'}"><td>${g?W.groups[g]:"<b>합계</b>"}</td>${row.map(r=>`<td class="num">${r[0].toFixed(1)}</td><td class="num">${r[1]}</td>`).join("")}<td class="num">${pp(d,1)}</td></tr>`; }
+  $("#s4trend").innerHTML=t+"</tbody></table>";
+  const cols=["var(--g1)","var(--g2)","var(--g3)","var(--g4)"];
+  const gs=GORDER.map((g,i)=>{const x=wl.filter(w=>w.group===g); return {g,b:x.reduce((a,w)=>a+w.snaps[snap].balance,0),c:x.reduce((a,w)=>a+w.snaps[snap].contracts,0),col:cols[i]};});
+  $("#stack").innerHTML=gs.map(x=>`<div style="flex:${x.b} 1 0;background:${x.col}" data-tip="${esc(`<b>${W.groups[x.g]}</b><br>${x.b.toFixed(1)}억 (${(x.b/tot*100).toFixed(1)}%)<br>${x.c}건`)}"></div>`).join("");
+  $("#glist").innerHTML=gs.map(x=>`<div class="gi"><i style="background:${x.col}"></i>${W.groups[x.g]}<b class="num">${x.b.toFixed(1)}억 <span style="font-weight:500;font-size:12px;color:var(--ink2)">${(x.b/tot*100).toFixed(1)}%</span></b><span class="sub num">${x.c}건</span></div>`).join("");
+  const max=Math.max(...wl.map(w=>w.snaps[snap].balance));
+  $("#c4").innerHTML=`<div class="grp" style="padding-top:4px">상품별 평가금액 (큰 순)</div>`+[...wl].sort((a,b)=>b.snaps[snap].balance-a.snaps[snap].balance).map(w=>{const s=w.snaps[snap];
+    const t=`<b>${esc(w.name)}</b><br>${s.balance.toFixed(1)}억 · ${(s.balance/tot*100).toFixed(1)}%<br>${s.contracts}건 · 계약당 평균 ${(s.balance/s.contracts).toFixed(2)}억`;
+    return `<div class="crow" data-tip="${esc(t)}"><div class="nm" style="font-size:13px">${esc(w.short)}<small style="display:block;color:var(--muted);font-size:11px">${W.groups[w.group]}</small></div><div class="trk"><div class="b" style="width:${s.balance/max*100}%"></div></div><div class="sh num"><b>${s.balance.toFixed(1)}억</b> · ${(s.balance/tot*100).toFixed(1)}%</div><div class="ct num">${s.contracts}건</div></div>`;}).join("");
+}
+function wKPI(){
+  const snap=ws.snap; const wl=wrapsFor(snap); const bsnap=hasBal(snap)?snap:"0930";
+  const bl=wrapsFor(bsnap).filter(w=>w.snaps[bsnap].balance!=null); const tot=bl.reduce((a,w)=>a+w.snaps[bsnap].balance,0), tc=bl.reduce((a,w)=>a+w.snaps[bsnap].contracts,0);
+  const big=[...bl].sort((a,b)=>b.snaps[bsnap].balance-a.snaps[bsnap].balance)[0];
+  const cand=wl.filter(w=>w.snaps[snap].ret.YTD!=null).sort((a,b)=>b.snaps[snap].ret.YTD-a.snaps[snap].ret.YTD)[0];
+  const first=hasBal("0630")?sum0630():null;
+  function sum0630(){return wrapsFor("0630").filter(w=>w.snaps["0630"].balance!=null).reduce((a,w)=>a+w.snaps["0630"].balance,0);}
+  const tb=bsnap==="0930"&&first?`<div class="n num">06.30 ${first.toFixed(1)}억 대비 ${(tot-first>=0?"+":"−")+Math.abs(tot-first).toFixed(1)}억</div>`:`<div class="n num">${bl.length}개 상품 · ${tc}건</div>`;
+  $("#kpis").innerHTML=`
+   <div class="kpi"><div class="l">총 평가금액 (${lab(bsnap)})</div><div class="v num">${tot.toFixed(1)}<small>억</small></div>${tb}</div>
+   <div class="kpi"><div class="l">최대 상품</div><div class="v num">${(big.snaps[bsnap].balance/tot*100).toFixed(1)}<small>%</small></div><div class="n">${esc(big.short)} ${big.snaps[bsnap].balance.toFixed(1)}억</div></div>
+   <div class="kpi"><div class="l">YTD 최고 (${lab(snap)})</div><div class="v num up">${sgnT(cand.snaps[snap].ret.YTD)}</div><div class="n">${esc(cand.short)}</div></div>
+   <div class="kpi"><div class="l">BM를 앞선 상품 (누적 기준)</div><div class="v num">${wl.filter(w=>w.snaps[snap].vsBM>0).length}<small>/ ${wl.length}</small></div><div class="n">${lab(snap)} 누적 수익률이 BM보다 높은 수</div></div>`;
+}
+function wTable(){
+  const snap=ws.snap,P=W.periods[snap],hb=wrapsFor(snap).some(w=>w.snaps[snap].balance!=null);
+  $("#s5p").textContent=ws.tab==="ret"?`${SNAPLABEL[snap]} 기준 전체 수익률입니다. 셀 배경은 수익률 크기를 연하게 나타냅니다.`:"2026.09.30 표의 수수료율 항목입니다. 성과보수는 기준수익률 초과분에 대한 비율입니다.";
+  let h="";
+  if(ws.tab==="ret"){
+    const nc=P.length+4+(hb?2:0);
+    h+=`<table><thead><tr><th>랩 상품</th><th class="l">개시일</th>${hb?"<th>계약수</th><th>평가금액</th>":""}${P.map(p=>`<th>${p}</th>`).join("")}<th>누적</th><th>BM 대비</th></tr></thead><tbody>`;
+    let tb=0,tcn=0;
+    for(const g of GORDER){ const wl=wrapsFor(snap).filter(w=>w.group===g); if(!wl.length) continue;
+      h+=`<tr class="gh"><td colspan="${nc}">${W.groups[g]}</td></tr>`;
+      for(const w of wl){ const s=w.snaps[snap]; if(hb){tb+=s.balance||0;tcn+=s.contracts||0;}
+        h+=`<tr><td>${esc(w.name.replace("메리츠-","").replace("메리츠 ",""))}</td><td class="l num">${s.open.replace(/-/g,".")}</td>${hb?`<td class="num">${s.contracts??'–'}</td><td class="num">${s.balance!=null?s.balance.toFixed(1):'–'}</td>`:""}`+
+          P.map(p=>`<td class="c ${(HL[snap]||{})[w.id]===p?'hl2':''}" style="${heat(s.ret[p])}">${sgn(s.ret[p])}</td>`).join("")+`<td class="c" style="${heat(s.cum)}">${sgn(s.cum)}</td><td class="num">${pp(s.vsBM)}</td></tr>`; }
+      const b=W.bmSeries[g][snap];
+      h+=`<tr class="bmr"><td>BM · ${esc(W.bm[g])}</td><td></td>${hb?`<td class="num">${b.contracts??'–'}</td><td class="num">${b.balance!=null?b.balance.toFixed(1):'–'}</td>`:""}`+P.map(p=>`<td class="num">${sgn(b.ret[p])}</td>`).join("")+`<td></td><td></td></tr>`;
+    }
+    if(hb) h+=`<tr class="bmr"><td><b>합계</b></td><td></td><td class="num"><b>${tcn}</b></td><td class="num"><b>${tb.toFixed(1)}</b></td><td colspan="${P.length+2}"></td></tr>`;
+    h+="</tbody></table>";
+    $("#tblNote").textContent=hb?"계약수와 평가금액은 06.30, 08.31, 09.30 표에만 있습니다. 합계는 상품별 값을 더한 것이고 BM 행의 계약수·금액은 원본 표의 구분별 소계입니다.":"이 기준일 표에는 계약수·평가금액·수수료 항목이 없습니다."+(P.includes("MTD")?" MTD는 월초 이후 수익률입니다.":"");
+  } else {
+    h+=`<table><thead><tr><th>랩 상품</th><th>최소가입금액</th><th>기본보수</th><th>자문사지급</th><th class="l">성과보수</th><th>성과보수 자문사지급률</th></tr></thead><tbody>`;
+    for(const g of GORDER){ h+=`<tr class="gh"><td colspan="6">${W.groups[g]}</td></tr>`;
+      for(const w of W.wraps.filter(w=>w.group===g)){ const f=w.fee; h+=`<tr><td>${esc(w.name.replace("메리츠-","").replace("메리츠 ",""))}</td><td class="num">${f.min}</td><td class="num">${f.base.toFixed(1)}%</td><td class="num">${f.adv_bp}bp</td><td class="l">${f.perf?esc(f.perf):'<span class="na">–</span>'}</td><td class="num">${f.adv_pay||'<span class="na">–</span>'}</td></tr>`; } }
+    h+="</tbody></table>";
+    $("#tblNote").textContent="기본보수와 자문사지급은 연 기준 수수료율로 읽었습니다. 기본보수 2.8%, 2.7% 상품은 성과보수가 없는 정액형입니다.";
+  }
+  $("#tbl").innerHTML=h;
+}
+function wControls(){
+  seg($("#segSnap"),W.snapOrder.map(k=>[k,lab(k)]),()=>ws.snap,k=>{ws.snap=k; if(!W.periods[k].includes(ws.period)&&ws.period!=="누적") ws.period="YTD"; wAll();});
+  seg($("#segPeriod"),[...W.periods[ws.snap],"누적"].map(p=>[p,p]),()=>ws.period,k=>{ws.period=k; wAll();});
+  seg($("#segSort"),[["group","구분별"],["rank","수익률 순"]],()=>ws.sort,k=>{ws.sort=k; wAll();});
+  seg($("#segMetric"),[["YTD","YTD"],["누적","누적"]],()=>ws.metric,k=>{ws.metric=k; wAll();});
+  seg($("#segTab"),[["ret","수익률"],["fee","수수료"]],()=>ws.tab,k=>{ws.tab=k; wAll();});
+}
+function wAll(){ wControls(); wKPI(); wS1(); wS2(); wS3(); wS4(); wTable(); }
+
+/* =============== 자문사 =============== */
+const as={snap:"0930",period:"YTD",mk:"all",mode:"ret",verdict:"all",sort:{k:"ytdx",d:-1},lineM:"YTD",sel:null,raw:"0930"};
+const VORD=["우수","양호","고변동","방어형","보통","부진","관찰"];
+const MKS=Object.keys(A.mk);
+const rowsMk=()=>A.rows.filter(r=>as.mk==="all"||r.m===as.mk);
+const aSnapLab=k=>lab(k);
+const dispName=r=>r.name+(r.m!=="dom"||A.rows.some(x=>x.name===r.name&&x.m!=="dom")?` (${A.mk[r.m]})`:"");
+const dispNameFull=r=>A.rows.filter(x=>x.name===r.name).length>1?`${r.name} · ${A.mk[r.m]}`:r.name;
+function aStats(){
+  const s=A.stats, p=s.persist;
+  $("#aStats").innerHTML=`
+   <div class="kpi"><div class="l">월간 BM 초과 비율</div><div class="v num">${s.winRate}<small>%</small></div><div class="n num">6월~9월 ${s.monthWins}/${s.monthObs}건</div></div>
+   <div class="kpi"><div class="l">YTD가 BM를 넘은 전략 (09.30)</div><div class="v num">${s.ytdBeat}<small>/ ${s.ytdN}</small></div><div class="n">시장별 BM 기준</div></div>
+   <div class="kpi"><div class="l">직전 달 순위의 지속성</div><div class="v num">${p["6-7"][0].toFixed(2).replace("-","−")}</div><div class="n">6월→7월 BM 초과 상관(${p["6-7"][1]}종). 7→8월 ${p["7-8"][0].toFixed(2)}, 8→9월 ${p["8-9"][0].toFixed(2)}</div></div>
+   <div class="kpi"><div class="l">월 회전율 30% 미만 vs 100% 이상</div><div class="v num">${sgnP(s.lowTurn.avg)}<small> / </small>${sgnP(s.hiTurn.avg)}</div><div class="n">YTD 초과 평균, ${s.lowTurn.n}종 vs ${s.hiTurn.n}종</div></div>`;
+}
+const mon=(r,l)=>(r.mon||[]).find(m=>m.lab===l);
+function aScore(){
+  const rs=rowsMk(); const cnt={}; rs.forEach(r=>cnt[r.verdict]=(cnt[r.verdict]||0)+1);
+  seg($("#aMk2"),[["all","전체"],...MKS.map(k=>[k,A.mk[k]])],()=>as.mk,k=>{as.mk=k; aAll();});
+  $("#aVerdict").innerHTML=[["all","전체 "+rs.length],...VORD.map(v=>[v,`${v} ${cnt[v]||0}`])].map(([k,l])=>`<button type="button" class="chip" data-k="${k}" aria-pressed="${as.verdict===k}">${l}</button>`).join("");
+  $("#aVerdict").onclick=e=>{const b=e.target.closest("button"); if(b){as.verdict=b.dataset.k; aScore();}};
+  let list=rs.filter(r=>as.verdict==="all"||r.verdict===as.verdict);
+  const key=as.sort.k, d=as.sort.d;
+  const val=r=>{ if(key==="name") return r.name; if(key==="verdict") return VORD.indexOf(r.verdict);
+    if(["6월","7월","8월","9월"].includes(key)){const m=mon(r,key); return m?m.x:null;}
+    if(key==="win") return r.nm?r.wins/r.nm:null; return r[key]; };
+  list=[...list].sort((a,b)=>{const x=val(a),y=val(b); if(x==null&&y==null) return 0; if(x==null) return 1; if(y==null) return -1; return typeof x==="string"?x.localeCompare(y,"ko")*d:(x-y)*d;});
+  const cols=[["name","운용사 · 전략","l"],["verdict","판정",""],["6월","6월",""],["7월","7월",""],["8월","8월",""],["9월","9월",""],["win","월간 승",""],["ytdx","YTD 초과",""],["ytd","YTD",""],["m12x","12M 초과",""],["turnAvg","월 회전율",""],["hist","이력",""]];
+  let h=`<table><thead><tr>${cols.map(([k,l,c])=>`<th class="sortable ${c}" data-k="${k}" ${as.sort.k===k?`aria-sort="${as.sort.d>0?'ascending':'descending'}"`:""} tabindex="0">${l}</th>`).join("")}</tr></thead><tbody>`;
+  for(const r of list){
+    const tags=(r.tags||[]).map(t=>`<span class="tag ${/급락|고회전|계좌변경/.test(t)?'w':''}">${esc(t)}</span>`).join("");
+    const mc=l=>{const m=mon(r,l); return m?`<span class="mcell" style="${heat(m.x,25)}" data-tip="${esc(`<b>${esc(dispNameFull(r))}</b><br>${l} ${sgnT(m.v,1)}<br>BM ${sgnT(m.b,1)}<br>초과 ${sgnP(m.x)}`)}">${pp(m.x,1)}</span>`:'<span class="na">–</span>';};
+    const t=`<b>${esc(dispNameFull(r))}</b><br>개시 ${r.open[r.last]||""}<br>누적 ${sgnT(r.cumNow,1)} (BM 대비 ${sgnP(r.vsNow)})`;
+    h+=`<tr data-tip="${esc(t)}"><td class="l nm2">${esc(dispNameFull(r))}${CHG_BADGE[r.id]?`<span class="chg-badge ${CHG_BADGE[r.id].dir>0?'u':CHG_BADGE[r.id].dir<0?'d':''}">${CHG_BADGE[r.id].txt}</span>`:""}<small>${esc(A.mk[r.m])} · ${r.open[r.last]?r.open[r.last].replace(/-/g,"."):""}</small>${tags?`<div>${tags}</div>`:""}</td><td><span class="pill v-${r.verdict}">${r.verdict}</span></td><td>${mc("6월")}</td><td>${mc("7월")}</td><td>${mc("8월")}</td><td>${mc("9월")}</td><td class="num">${r.nm?r.wins+"/"+r.nm:"–"}</td><td class="num">${pp(r.ytdx,1)}</td><td class="num">${pp(r.ytd,1)}</td><td class="num">${pp(r.m12x,1)}</td><td class="num">${r.turnAvg==null?'<span class="na">–</span>':Math.round(r.turnAvg)+"%"}</td><td class="num">${r.hist!=null?(r.hist).toFixed(0)+"개월":"–"}</td></tr>`;
+  }
+  $("#aScoreT").innerHTML=h+"</tbody></table>";
+  $("#aScoreT").querySelectorAll("th.sortable").forEach(th=>{const go=()=>{const k=th.dataset.k; as.sort=as.sort.k===k?{k,d:-as.sort.d}:{k,d:k==="name"||k==="verdict"?1:-1}; aScore();}; th.onclick=go; th.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();go();}};});
+  $("#aScoreNote").textContent="월별 칸은 해당 월 수익률에서 시장 BM을 뺀 값(%p)입니다. YTD·12M 초과는 09.30 표 기준이고 값이 없으면 이력이 짧은 것입니다. 이름에 마우스를 올리면 개시일과 누적이 나옵니다. 판정 기준은 페이지 아래 데이터 확인 사항에 있습니다.";
+}
+function aRank(){
+  const snap=as.snap,p=as.period,P=A.periods[snap];
+  if(!P.includes(p)) as.period="YTD";
+  const per=as.period;
+  seg($("#aSnap"),A.snaps.map(k=>[k,lab(k)]),()=>as.snap,k=>{as.snap=k; if(!A.periods[k].includes(as.period)) as.period="YTD"; aAll();});
+  seg($("#aPeriod"),A.periods[as.snap].map(x=>[x,x]),()=>as.period,k=>{as.period=k; aAll();});
+  seg($("#aMk"),[["all","전체"],...MKS.map(k=>[k,A.mk[k]])],()=>as.mk,k=>{as.mk=k; aAll();});
+  seg($("#aMode"),[["ret","수익률"],["x","BM 대비 초과"]],()=>as.mode,k=>{as.mode=k; aAll();});
+  const rows=rowsMk().map(r=>{const rr=r.ret[snap]; if(!rr) return null; const v=rr[per]; if(v==null) return null; const bm=(A.bm[snap][r.m]||{})[per]; return {r,v,bm,x:bm==null?null:v-bm};}).filter(Boolean);
+  const mode=as.mode;
+  const items=rows.filter(i=>mode==="ret"||i.x!=null).sort((a,b)=>(mode==="ret"?b.v-a.v:b.x-a.x));
+  const sc=mkScale(items.flatMap(i=>mode==="ret"?[i.v,i.bm]:[i.x]).filter(x=>x!=null));
+  $("#aRankT").textContent=`${SNAPLABEL[snap] ? "2026."+lab(snap):""} 기준 ${per} ${mode==="ret"?"수익률":"BM 대비 초과"} 순위`;
+  $("#aRankP").textContent=mode==="ret"?"마름모는 같은 기간 해당 시장 BM 수익률입니다. 개시일이 기간보다 늦은 상품은 빠집니다.":"전략 수익률에서 해당 시장 BM 수익률을 뺀 값(%p)입니다.";
+  $("#aBmLg").style.display=mode==="ret"?"":"none";
+  let h=axisHTML(sc,mode==="ret"?"%":"%p");
+  h+=items.map((i,n)=>{
+    const t=`<b>${esc(dispNameFull(i.r))}</b><br>${per} ${sgnT(i.v,1)}<br>BM(${esc(A.bmName[i.r.m])}) ${sgnT(i.bm,1)}${i.x!=null?`<br>초과 ${sgnP(i.x)}`:""}<br><span class="pill v-${i.r.verdict}">${i.r.verdict}</span>`;
+    const val=mode==="ret"?i.v:i.x;
+    return barRow(`${n+1}. ${dispNameFull(i.r)}`,A.mk[i.r.m],val,sc,mode==="ret"?i.bm:null,t,false,mode==="ret"?sgn(i.v,1):pp(i.x,1));
+  }).join("")||'<div class="note">표시할 값이 없습니다.</div>';
+  $("#aRankC").innerHTML=h; chgMark("#aRankC",items.map(i=>i.r.id));
+}
+function aLine(){
+  const pool=A.rows.filter(r=>A.snaps.filter(k=>r.ret[k]&&r.ret[k].YTD!=null).length>=3).sort((a,b)=>(b.ytdx??-1e9)-(a.ytdx??-1e9));
+  if(!as.sel){ const top=pool.filter(r=>r.verdict==="우수"||r.verdict==="양호").slice(0,3); const bot=[...pool].reverse().filter(r=>r.verdict==="부진").slice(0,2); as.sel=[...top,...bot].map(r=>r.id); }
+  seg($("#aLineM"),[["YTD","YTD 수익률"],["x","BM 대비 초과"]],()=>as.lineM,k=>{as.lineM=k; aLine();});
+  $("#aChips").innerHTML=pool.map(r=>{const i=as.sel.indexOf(r.id); const on=i>=0; return `<button type="button" class="chip" data-id="${esc(r.id)}" aria-pressed="${on}" ${!on&&as.sel.length>=6?"disabled":""}><i style="background:${on?`var(--s${i+1})`:'var(--line)'}"></i>${esc(dispNameFull(r))}</button>`;}).join("");
+  $("#aChips").onclick=e=>{const b=e.target.closest("button"); if(!b||b.disabled) return; const id=b.dataset.id; const i=as.sel.indexOf(id); if(i>=0) as.sel.splice(i,1); else if(as.sel.length<6) as.sel.push(id); aLine();};
+  const sel=as.sel.map(id=>A.rows.find(r=>r.id===id)).filter(Boolean);
+  const S=A.snaps, T=S.map(k=>Date.parse(A.dates[k])), t0=T[0], t1=T[T.length-1];
+  const series=sel.map((r,i)=>({r,c:`var(--s${i+1})`,pts:S.map((k,j)=>{const v=r.ret[k]?r.ret[k].YTD:null; if(v==null) return null; const b=(A.bm[k][r.m]||{}).YTD; return {k,j,v:as.lineM==="x"?(b==null?null:v-b):v,raw:v,b};}).filter(p=>p&&p.v!=null)})).filter(s=>s.pts.length);
+  const bms=[];
+  if(as.lineM==="ret"||as.lineM==="YTD"){ for(const m of [...new Set(sel.map(r=>r.m))]) bms.push({m,pts:S.map((k,j)=>({k,j,v:(A.bm[k][m]||{}).YTD})).filter(p=>p.v!=null)}); }
+  const vals=[...series.flatMap(s=>s.pts.map(p=>p.v)),...bms.flatMap(b=>b.pts.map(p=>p.v))];
+  if(!vals.length){ $("#aLineC").innerHTML='<div class="note">선택된 전략이 없습니다.</div>'; $("#aLineLg").innerHTML=""; return; }
+  const lo0=Math.min(0,...vals),hi0=Math.max(0,...vals),span=hi0-lo0||1; const lo=lo0-(lo0<0?span*.06:0),hi=hi0+span*.06;
+  const Wd=760,H=320,L=46,R=178,Tp=14,B=28; const X=t=>L+(t-t0)/(t1-t0)*(Wd-L-R), Y=v=>Tp+(hi-v)/(hi-lo)*(H-Tp-B);
+  let g="";
+  for(const t of niceTicks(lo,hi)) g+=`<line class="${t===0?'ax':'gl'}" x1="${L}" x2="${Wd-R}" y1="${Y(t)}" y2="${Y(t)}"/><text x="${L-6}" y="${Y(t)+4}" text-anchor="end">${t}</text>`;
+  S.forEach((k,j)=>{g+=`<text x="${X(T[j])}" y="${H-8}" text-anchor="middle">${lab(k)}</text>`;});
+  const path=pts=>pts.map((p,i)=>`${i?"L":"M"}${X(T[p.j]).toFixed(1)},${Y(p.v).toFixed(1)}`).join("");
+  for(const b of bms){ g+=`<path d="${path(b.pts)}" fill="none" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="4 3"/>`; const e=b.pts[b.pts.length-1]; if(e) g+=`<text x="${X(T[e.j])+8}" y="${Y(e.v)+4}" style="fill:var(--muted)">BM ${esc(A.bmName[b.m].split(" ")[0])}</text>`; }
+  /* label de-collision */
+  const ends=series.map(s=>({s,y:Y(s.pts[s.pts.length-1].v)})).sort((a,b)=>a.y-b.y); for(let i=1;i<ends.length;i++) if(ends[i].y-ends[i-1].y<14) ends[i].y=ends[i-1].y+14;
+  for(const s of series){ g+=`<path d="${path(s.pts)}" fill="none" stroke="${s.c}" stroke-width="2" stroke-linejoin="round"/>`;
+    for(const p of s.pts){ const t=`<b>${esc(dispNameFull(s.r))}</b><br>${lab(p.k)} YTD ${sgnT(p.raw,1)}<br>BM ${sgnT(p.b,1)}${p.b!=null?`<br>초과 ${sgnP(p.raw-p.b)}`:""}`;
+      g+=`<circle cx="${X(T[p.j]).toFixed(1)}" cy="${Y(p.v).toFixed(1)}" r="3" fill="var(--surface)" stroke="${s.c}" stroke-width="2"/><circle cx="${X(T[p.j]).toFixed(1)}" cy="${Y(p.v).toFixed(1)}" r="11" fill="transparent" data-tip="${esc(t)}"/>`; } }
+  for(const e of ends){ const s=e.s,last=s.pts[s.pts.length-1]; g+=`<text class="lbl" x="${X(T[last.j])+8}" y="${e.y+4}" style="fill:${s.c}">${esc(dispNameFull(s.r).replace("자산운용","").replace(" · 해외(미국)"," 미국").replace(" · 국내","").slice(0,13))} ${sgnT(last.v,0)}</text>`; }
+  $("#aLineC").innerHTML=`<svg class="line" viewBox="0 0 ${Wd} ${H}" role="img" aria-label="선택한 전략의 YTD 추이">${g}</svg>`;
+  $("#aLineLg").innerHTML=as.lineM==="x"?'<span>0선 위는 BM보다 높음 · 값은 YTD 수익률에서 해당 시장 BM YTD를 뺀 %p</span>':'<span><i class="ls k"></i>해당 시장 BM(YTD)</span><span>대표계좌 변경이 있는 전략은 선이 끊겨 보일 수 있음</span>';
+  if(as.lineM==="YTD"||as.lineM==="x"){}
+}
+function aRaw(){
+  const snap=as.raw; seg($("#aRawSnap"),A.snaps.map(k=>[k,lab(k)]),()=>as.raw,k=>{as.raw=k; aRaw();});
+  const P=A.periods[snap]; let h=`<table><thead><tr><th class="l">운용사 · 전략</th><th class="l">개시일</th><th>월 회전율</th>${P.map(p=>`<th>${p}</th>`).join("")}<th>누적</th><th>BM 대비</th></tr></thead><tbody>`;
+  for(const m of MKS){ const rs=A.rows.filter(r=>r.m===m&&r.ret[snap]); if(!rs.length) continue;
+    h+=`<tr class="gh"><td colspan="${P.length+5}">${A.mk[m]} · BM ${esc(A.bmName[m])}</td></tr>`;
+    for(const r of rs){ const rr=r.ret[snap]; const der=(r.derived||[]).includes(snap);
+      h+=`<tr><td class="l nm2">${esc(r.name)}</td><td class="l num">${(r.open[snap]||"").replace(/-/g,".")}</td><td class="num">${r.turn[snap]==null?'<span class="na">–</span>':r.turn[snap].toFixed(1)+"%"}</td>${P.map(p=>`<td class="c" style="${heat(rr[p])}">${sgn(rr[p],1)}</td>`).join("")}<td class="c" style="${heat(r.cum[snap])}">${sgn(r.cum[snap],1)}</td><td class="num">${pp(r.vs[snap],1)}${der?'<sup title="잘린 표를 역산한 값">‡</sup>':""}</td></tr>`; }
+    const b=(A.bm[snap]||{})[m]; if(b) h+=`<tr class="bmr"><td>BM · ${esc(A.bmName[m])}</td><td></td><td></td>${P.map(p=>`<td class="num">${sgn(b[p],1)}</td>`).join("")}<td></td><td></td></tr>`;
+  }
+  $("#aRawT").innerHTML=h+`</tbody></table><div class="note">‡ 사진 오른쪽이 잘려 직전 표에서 역산한 BM 대비 값입니다.</div>`;
+}
+function aAll(){ aStats(); aScore(); aRank(); aLine(); aRaw(); }
+
+
+/* =============== 직전 시점 대비 변화 알림 =============== */
+const CHG_BADGE={};
+function chgMark(container,ids){ const rows=document.querySelectorAll(container+" .row"); rows.forEach((row,n)=>{ const id=ids[n]; const b=id&&CHG_BADGE[id]; const nm=row.querySelector(".nm"); if(!nm) return; nm.querySelectorAll(".chg-badge").forEach(x=>x.remove()); if(b){ const s=document.createElement("span"); s.className="chg-badge "+(b.dir>0?"u":b.dir<0?"d":""); s.textContent=b.txt; nm.insertBefore(s,nm.querySelector("small")); } if(b) row.classList.add("chg-row"); else row.classList.remove("chg-row"); }); } // 자문사 id -> {dir,txt} (최신 vs 직전)
+function chgCompute(ent,snaps,i,thR,thX){
+  const cur=snaps[i],prev=snaps[i-1]; const all=[]; const byG={};
+  for(const e of ent){ const a=e.ytdx(prev),b=e.ytdx(cur); if(a==null||b==null) continue; (byG[e.grp]=byG[e.grp]||[]).push({e,a,b}); }
+  for(const g in byG){ const L=byG[g];
+    const rk=key=>{const s=[...L].sort((x,y)=>y[key]-x[key]); const m=new Map(); s.forEach((x,n)=>m.set(x.e.id,n+1)); return m;};
+    const rp=rk("a"),rc=rk("b");
+    for(const x of L){ const r0=rp.get(x.e.id),r1=rc.get(x.e.id); const dr=r0-r1, dx=x.b-x.a;
+      const hitR=L.length>=4&&Math.abs(dr)>=thR, hitX=Math.abs(dx)>=thX; const flag=hitR||hitX;
+      const dir=(hitR&&hitX)?(Math.sign(dr)===Math.sign(dx)?Math.sign(dx):0):(hitR?Math.sign(dr):hitX?Math.sign(dx):0);
+      all.push({e:x.e,g,n:L.length,r0,r1,dr,a:x.a,b:x.b,dx,hitR,hitX,flag,dir,score:Math.abs(dr)/thR+Math.abs(dx)/thX,warn:x.e.open(prev)!==x.e.open(cur)||x.e.warn});
+    } }
+  return all;
+}
+function chgRender(P,cfg){
+  const st=cfg.st, snaps=cfg.snaps, i=snaps.indexOf(st.snap)<1?snaps.length-1:snaps.indexOf(st.snap);
+  const prev=snaps[i-1], cur=snaps[i];
+  seg($("#"+P+"ChgSnap"),snaps.slice(1).map((k,j)=>[k,`${lab(snaps[j])}→${lab(k)}`]),()=>snaps[i],k=>{st.snap=k; cfg.redraw();});
+  seg($("#"+P+"ChgR"),[[2,"±2단계"],[3,"±3단계"],[5,"±5단계"]],()=>st.thR,k=>{st.thR=+k; cfg.redraw();});
+  seg($("#"+P+"ChgX"),[[3,"±3%p"],[5,"±5%p"],[10,"±10%p"]],()=>st.thX,k=>{st.thX=+k; cfg.redraw();});
+  const all=chgCompute(cfg.ent,snaps,i,st.thR,st.thX); const res=all.filter(r=>r.flag).sort((p,q)=>q.score-p.score);
+  $("#"+P+"ChgP").textContent=`${lab(prev)} → ${lab(cur)} 사이에 BM 대비 YTD 초과(%p)가 얼마나 움직였는지 보여 줍니다. 진한 막대와 굵은 선이 기준을 넘은 상품입니다. 순위는 같은 시장·구분 안에서 매겼습니다.`;
+  const up=res.filter(r=>r.dir>0).length, dn=res.filter(r=>r.dir<0).length, mix=res.length-up-dn;
+  const best=[...all].sort((p,q)=>q.dx-p.dx)[0], worst=[...all].sort((p,q)=>p.dx-q.dx)[0];
+  let h="";
+  if(!all.length){ $("#"+P+"ChgC").innerHTML='<div class="note">비교할 수 있는 상품이 없습니다.</div>'; return res; }
+  /* A. KPI */
+  h+=`<div class="kpis chgk">
+    <div class="kpi"><div class="l">크게 개선</div><div class="v num up">${up}<small>곳</small></div><div class="n">기준 이상 올라간 상품</div></div>
+    <div class="kpi"><div class="l">크게 악화</div><div class="v num dn">${dn}<small>곳</small></div><div class="n">기준 이상 내려간 상품${mix?` · 엇갈림 ${mix}`:""}</div></div>
+    <div class="kpi"><div class="l">가장 많이 오름</div><div class="v num up">${sgnP(best.dx,1)}</div><div class="n">${esc(best.e.label)} · ${best.r0}→${best.r1}위</div></div>
+    <div class="kpi"><div class="l">가장 많이 내림</div><div class="v num dn">${sgnP(worst.dx,1)}</div><div class="n">${esc(worst.e.label)} · ${worst.r0}→${worst.r1}위</div></div></div>`;
+  /* B. 변화 막대 */
+  const sc=mkScale(all.map(r=>r.dx),.08);
+  h+=`<div class="chg-h">YTD 초과 변화 (%p) <small>오른쪽(빨강)은 BM 대비 좋아짐, 왼쪽(파랑)은 나빠짐 · 연한 막대는 기준 미만</small></div>`+axisHTML(sc,"%p");
+  for(const [g,gl] of cfg.groups){ const L=all.filter(r=>r.g===g).sort((p,q)=>q.dx-p.dx); if(!L.length) continue;
+    h+=`<div class="grp">${esc(gl)}</div>`;
+    h+=L.map(r=>{ const e=r.e; const rk=r.dr===0?"순위 유지":`${r.r0}→${r.r1}위 ${r.dr>0?"▲":"▼"}${Math.abs(r.dr)}`;
+      const t=`<b>${esc(e.label)}</b><br>YTD 초과 ${r.a.toFixed(1)} → ${r.b.toFixed(1)}%p (${sgnP(r.dx,1)})<br>순위 ${r.r0}위 → ${r.r1}위 / ${r.n}개${r.warn?"<br>※ 대표계좌·개시일 변경, 값 비교 주의":""}`;
+      const bar=r.dx>=0?`<div class="b up" style="left:${sc.z}%;width:${Math.max(sc.f(r.dx)-sc.z,.4)}%"></div>`:`<div class="b dn" style="left:${sc.f(r.dx)}%;width:${Math.max(sc.z-sc.f(r.dx),.4)}%"></div>`;
+      const fl=r.flag?(r.dir>0?'<span class="chg-badge u">▲ 개선</span>':r.dir<0?'<span class="chg-badge d">▼ 악화</span>':'<span class="chg-badge">변화</span>'):"";
+      return `<div class="row ${r.flag?"":"dim"}" data-tip="${esc(t)}"><div class="nm">${esc(e.label)}${fl}<small>${rk}${r.warn?" · 계좌변경 주의":""}</small></div><div class="trk"><div class="zero" style="left:${sc.z}%"></div>${bar}</div><div class="val ${r.flag?"hl":""}">${pp(r.dx,1)}</div></div>`; }).join(""); }
+  /* C. 슬로프(순위 이동) */
+  h+=`<div class="chg-h">순위 이동 <small>${lab(prev)}(왼쪽) → ${lab(cur)}(오른쪽), 위가 1위 · 빨강 상승, 파랑 하락, 굵은 선은 기준 초과</small></div><div class="slopes">`;
+  for(const [g,gl] of cfg.groups){ const L=all.filter(r=>r.g===g); if(L.length<3) continue;
+    const n=L.length, rowH=22, Hs=n*rowH+34, Wd=420, xL=150, xR=270;
+    const Y=r=>26+(r-1)*rowH; let s="";
+    s+=`<text x="${xL}" y="12" text-anchor="middle" class="sl-h">${lab(prev)}</text><text x="${xR}" y="12" text-anchor="middle" class="sl-h">${lab(cur)}</text>`;
+    const short=x=>esc(x.length>11?x.slice(0,10)+"…":x);
+    for(const r of [...L].sort((p,q)=>p.r0-q.r0)) s+=`<text x="${xL-10}" y="${Y(r.r0)+4}" text-anchor="end" class="sl-t ${r.flag?'f':''}">${short(r.e.label)} <tspan class="sl-n">${r.r0}</tspan></text>`;
+    for(const r of [...L].sort((p,q)=>p.r1-q.r1)) s+=`<text x="${xR+10}" y="${Y(r.r1)+4}" class="sl-t ${r.flag?'f':''}"><tspan class="sl-n">${r.r1}</tspan> ${short(r.e.label)}</text>`;
+    for(const r of L){ const col=r.dr>0?"var(--up)":r.dr<0?"var(--down)":"var(--muted)"; const tp=`<b>${esc(r.e.label)}</b><br>${r.r0}위 → ${r.r1}위 (${r.dr>0?"▲":r.dr<0?"▼":""}${Math.abs(r.dr)})<br>YTD 초과 ${sgnP(r.dx,1)}`;
+      s+=`<line x1="${xL}" y1="${Y(r.r0)}" x2="${xR}" y2="${Y(r.r1)}" stroke="${col}" stroke-width="${r.flag?3.2:1.4}" stroke-opacity="${r.flag?1:.4}" stroke-linecap="round"/><circle cx="${xL}" cy="${Y(r.r0)}" r="${r.flag?4:2.5}" fill="${col}" fill-opacity="${r.flag?1:.5}"/><circle cx="${xR}" cy="${Y(r.r1)}" r="${r.flag?4:2.5}" fill="${col}" fill-opacity="${r.flag?1:.5}"/><line x1="${xL}" y1="${Y(r.r0)}" x2="${xR}" y2="${Y(r.r1)}" stroke="transparent" stroke-width="12" data-tip="${esc(tp)}"/>`; }
+    h+=`<div class="slope"><div class="grp" style="padding-top:0">${esc(gl)} · ${n}개</div><svg viewBox="0 0 ${Wd} ${Hs}" width="100%" role="img" aria-label="${esc(gl)} 순위 이동">${s}</svg></div>`; }
+  h+="</div>";
+  /* D. 순위 히트맵 */
+  h+=`<div class="chg-h">전체 시점 순위 흐름 <small>같은 시장·구분 안 YTD 초과 순위, 칸이 진한 빨강일수록 상위 · 오른쪽 열은 직전 대비 변화</small></div><div class="scrollx"><table class="heatw chg-hm"><thead><tr><th class="l">상품</th>${snaps.map(k=>`<th class="${k===cur?'cur':''}">${lab(k)}</th>`).join("")}<th>변화</th></tr></thead><tbody>`;
+  for(const [g,gl] of cfg.groups){ const E=cfg.ent.filter(e=>e.grp===g); if(!E.length) continue;
+    const rankAt={}; for(const k of snaps){ const L=E.filter(e=>e.ytdx(k)!=null).sort((p,q)=>q.ytdx(k)-p.ytdx(k)); rankAt[k]=new Map(L.map((e,n)=>[e.id,[n+1,L.length]])); }
+    const rows=E.filter(e=>snaps.some(k=>rankAt[k].has(e.id))).sort((p,q)=>{const a=rankAt[cur].get(p.id),b=rankAt[cur].get(q.id); return (a?a[0]:99)-(b?b[0]:99);});
+    if(!rows.length) continue;
+    h+=`<tr class="gh"><td colspan="${snaps.length+2}">${esc(gl)}</td></tr>`;
+    for(const e of rows){ const rr=all.find(r=>r.e.id===e.id);
+      h+=`<tr class="${rr&&rr.flag?'chg-hit':''}"><td class="l">${esc(e.label)}</td>`+snaps.map(k=>{const v=rankAt[k].get(e.id); if(!v) return '<td class="c"><span class="na">–</span></td>'; const pct=v[1]>1?(v[0]-1)/(v[1]-1):0; const al=(.5*(1-pct)).toFixed(2); return `<td class="c num" style="background:rgba(198,47,47,${al});${pct<.5?'font-weight:700':''}" data-tip="${esc(`<b>${esc(e.label)}</b><br>${lab(k)} ${v[0]}위 / ${v[1]}개<br>YTD 초과 ${sgnP(e.ytdx(k),1)}`)}">${v[0]}</td>`;}).join("")+`<td class="c">${rr?(rr.dr>0?`<span class="num up">▲${rr.dr}</span>`:rr.dr<0?`<span class="num dn">▼${-rr.dr}</span>`:'<span class="na">–</span>'):'<span class="na">–</span>'}</td></tr>`; } }
+  h+=`</tbody></table></div><div class="note">시점마다 값이 있는 상품 수가 달라(신규 등장·YTD 없음) 순위의 분모가 바뀔 수 있습니다. 대표계좌가 바뀐 상품은 값 비교에 주의하세요.</div>`;
+  $("#"+P+"ChgC").innerHTML=h;
+  return res;
+}
+const chgA={snap:null,thR:3,thX:5}, chgW={snap:null,thR:2,thX:5};
+function aChg(){
+  const ent=A.rows.map(r=>({id:r.id,label:dispNameFull(r),grp:r.m,grpLabel:A.mk[r.m],
+    ytdx:k=>{const x=r.ret[k]; const b=(A.bm[k]||{})[r.m]; return x&&x.YTD!=null&&b&&b.YTD!=null?x.YTD-b.YTD:null;},
+    ytd:k=>r.ret[k]?r.ret[k].YTD:null, open:k=>r.open[k], warn:false}));
+  const res=chgRender("a",{st:chgA,snaps:A.snaps,ent,groups:MKS.map(k=>[k,A.mk[k]+" · BM "+A.bmName[k]]),redraw:aChg});
+  for(const k in CHG_BADGE) delete CHG_BADGE[k];
+  for(const r of res) CHG_BADGE[r.e.id]={dir:r.dir,txt:r.dir>0?"▲ 개선":r.dir<0?"▼ 악화":"변화"};
+  if($("#aScoreT").innerHTML){ aScore(); aRank(); }
+}
+function wChg(){
+  const S=W.snapOrder;
+  const ent=W.wraps.map(w=>({id:w.id,label:w.short,grp:w.group,grpLabel:W.groups[w.group]+" · BM "+W.bm[w.group],
+    ytdx:k=>{const s=w.snaps[k]; const b=W.bmSeries[w.group]&&W.bmSeries[w.group][k]; return s&&s.ret.YTD!=null&&b&&b.ret.YTD!=null?s.ret.YTD-b.ret.YTD:null;},
+    ytd:k=>w.snaps[k]?w.snaps[k].ret.YTD:null, open:k=>w.snaps[k]?w.snaps[k].open:null, warn:false}));
+  const wres=chgRender("w",{st:chgW,snaps:S,ent,groups:GORDER.map(g=>[g,W.groups[g]+" · BM "+W.bm[g]]),redraw:wChg});
+  for(const w of W.wraps) delete CHG_BADGE[w.id];
+  for(const r of wres) CHG_BADGE[r.e.id]={dir:r.dir,txt:r.dir>0?"▲ 개선":r.dir<0?"▼ 악화":"변화"};
+  wS1();
+}
+
+
+/* =============== 일임+랩 통합 비교 =============== */
+const US={mk:"dom",pair:"0915>0930",period:"YTD",type:"all",mode:"x"};
+const UMK=[["dom","국내"],["us","해외(미국)"],["cn","해외(중국)"],["mix","혼합·글로벌"]];
+const USNAPS=["0630","0831","0915"];
+const median=a=>{const s=[...a].sort((x,y)=>x-y); const n=s.length; return n?(n%2?s[(n-1)/2]:(s[n/2-1]+s[n/2])/2):null;};
+const U_MONTHS={"1M":1,"3M":3,"6M":6,"12M":12};
+function uShort(openIso,snap,period){ // 기간 전체를 채우지 못하는 짧은 이력인지
+  if(!openIso) return false; const sd=new Date("2026-"+snap.slice(0,2)+"-"+snap.slice(2)+"T00:00:00");
+  let st; if(period==="YTD") st=new Date("2026-01-01T00:00:00"); else { st=new Date(sd); st.setMonth(st.getMonth()-(U_MONTHS[period]||0)); }
+  return new Date(openIso+"T00:00:00")>st;
+}
+function uItems(snap,period,mk){
+  const out=[];
+  for(const r of A.rows){ if(r.m!==mk) continue; const x=r.ret[snap]; const b=(A.bm[snap]||{})[mk]; const v=x?x[period]:null; const bm=b?b[period]:null; if(v==null||bm==null) continue; out.push({id:r.id,label:dispNameFull(r).replace(" · "+A.mk[mk],""),type:"a",v,bm,x:v-bm,warn:(r.tags||[]).includes("계좌변경"),obs:r.verdict==="관찰"||uShort(r.open[snap],snap,period)}); }
+  const g=mk==="mix"?"glb":mk;
+  for(const w of W.wraps){ if(w.group!==g) continue; const s=w.snaps[snap]; const b=W.bmSeries[g]&&W.bmSeries[g][snap]; const v=s?s.ret[period]:null; const bm=b?b.ret[period]:null; if(v==null||bm==null) continue; out.push({id:w.id,label:w.short,type:"w",v,bm,x:v-bm,warn:false,obs:uShort(s.open,snap,period)}); }
+  return out;
+}
+const tyBadge=(t,o)=>`<span class="chg-badge ${t==="a"?"ty-a":"ty-w"}">${t==="a"?"일임":"랩"}</span>${o?'<span class="chg-badge ty-o">관찰</span>':""}`;
+function uAll(){
+  const [p0,p1]=US.pair.split(">"); const pr=US.period, mk=US.mk, mode=US.mode;
+  seg($("#uMk"),UMK,()=>US.mk,k=>{US.mk=k; uAll();});
+  seg($("#uSnap"),[["0630>0831","06.30→08.31"],["0831>0915","08.31→09.15"],["0915>0930","09.15→09.30"]],()=>US.pair,k=>{US.pair=k; uAll();});
+  seg($("#uPeriod"),["1M","3M","6M","12M","YTD"].map(x=>[x,x]),()=>US.period,k=>{US.period=k; uAll();});
+  seg($("#uType"),[["all","전체"],["a","일임"],["w","랩"]],()=>US.type,k=>{US.type=k; uAll();});
+  seg($("#uMode"),[["x","BM 대비 초과"],["ret","수익률"]],()=>US.mode,k=>{US.mode=k; uAll();});
+  const mkName=UMK.find(m=>m[0]===mk)[1];
+  const cur=uItems(p1,pr,mk), prv=uItems(p0,pr,mk);
+  const key=mode==="x"?"x":"v";
+  const rankMap=L=>{const m=new Map(); [...L].sort((a,b)=>b[key]-a[key]).forEach((r,n)=>m.set(r.id,n+1)); return m;};
+  const rc=rankMap(cur), rp=rankMap(prv);
+  const shown=cur.filter(r=>US.type==="all"||r.type===US.type).sort((a,b)=>b[key]-a[key]);
+  /* KPI */
+  const grp=t=>cur.filter(r=>r.type===t);
+  const kp=t=>{const L=grp(t); const m=median(L.map(r=>r.x)); return {n:L.length,m,win:L.filter(r=>r.x>0).length};};
+  const ka=kp("a"),kw=kp("w"), solid=cur.filter(r=>!r.obs), pool=solid.length?solid:cur, top=[...pool].sort((a,b)=>b[key]-a[key])[0], bot=[...pool].sort((a,b)=>a[key]-b[key])[0];
+  const kcard=(l,t,k)=>`<div class="kpi"><div class="l">${l}</div><div class="v num ${k.m>0?'up':'dn'}">${k.m==null?"–":sgnP(k.m,1)}</div><div class="n">중앙값 · BM 앞선 곳 ${k.win}/${k.n}</div></div>`;
+  $("#uKpi").innerHTML=cur.length?`${kcard("일임 BM 대비 중앙값 ("+mkName+")","a",ka)}${kcard("랩 BM 대비 중앙값 ("+mkName+")","w",kw)}
+    <div class="kpi"><div class="l">1위 (관찰 제외)</div><div class="v num up">${sgnP(top.x,1)}</div><div class="n">${tyBadge(top.type,top.obs)} ${esc(top.label)}</div></div>
+    <div class="kpi"><div class="l">꼴찌 (관찰 제외)</div><div class="v num dn">${sgnP(bot.x,1)}</div><div class="n">${tyBadge(bot.type,bot.obs)} ${esc(bot.label)}</div></div>`:"";
+  /* rank bars */
+  $("#uRankT").textContent=`${lab(p1)} 기준 ${mkName} ${pr} ${mode==="x"?"BM 대비 초과":"수익률"} 순위`;
+  $("#uRankP").textContent=`일임 ${grp("a").length}개와 랩 ${grp("w").length}개를 같은 줄에 놓았습니다. 순위는 전체 ${cur.length}개 기준이고 오른쪽 화살표는 ${lab(p0)} 대비 순위 변화입니다.`;
+  const sc=mkScale(shown.flatMap(r=>mode==="x"?[r.x]:[r.v,r.bm]),.08);
+  let h=axisHTML(sc,mode==="x"?"%p":"%");
+  h+=shown.map(r=>{ const val=mode==="x"?r.x:r.v; const a=rc.get(r.id),b=rp.get(r.id); const d=b==null?null:b-a;
+    const mv=d==null?'<span class="na">신규</span>':d===0?'<span class="na">–</span>':d>0?`<span class="num up">▲${d}</span>`:`<span class="num dn">▼${-d}</span>`;
+    const big=d!=null&&Math.abs(d)>=3;
+    const bar=val>=0?`<div class="b up" style="left:${sc.z}%;width:${Math.max(sc.f(val)-sc.z,.4)}%"></div>`:`<div class="b dn" style="left:${sc.f(val)}%;width:${Math.max(sc.z-sc.f(val),.4)}%"></div>`;
+    const bmk=mode==="x"?"":`<i class="bm" style="left:${sc.f(r.bm)}%"></i>`;
+    const t=`<b>${esc(r.label)}</b> (${r.type==="a"?"일임":"랩"})<br>${pr} ${sgnT(r.v,1)} / BM ${sgnT(r.bm,1)}<br>BM 대비 ${sgnP(r.x,1)}<br>${lab(p0)} ${b==null?"–":b+"위"} → ${lab(p1)} ${a}위${r.warn?"<br>※ 대표계좌 변경, 값 비교 주의":""}`;
+    return `<div class="row ${big?'chg-row':''}" data-tip="${esc(t)}"><div class="nm">${a}. ${esc(r.label)} ${tyBadge(r.type,r.obs)}<small>${mv}${r.warn?" · 계좌변경 주의":""}</small></div><div class="trk"><div class="zero" style="left:${sc.z}%"></div>${bar}${bmk}</div><div class="val ${big?'hl':''}">${mode==="x"?pp(r.x,1):sgn(r.v,1)}</div></div>`; }).join("")||'<div class="note">표시할 값이 없습니다.</div>';
+  $("#uRankC").innerHTML=h;
+  /* slope */
+  const both=cur.filter(r=>rp.has(r.id));
+  $("#uSlopeP").textContent=`${lab(p0)}(왼쪽)에서 ${lab(p1)}(오른쪽)으로 ${mkName} 순위가 어떻게 움직였는지입니다. 빨강 상승, 파랑 하락, 굵은 선은 3단계 이상 이동, 일임은 회색 점·랩은 초록 점 테두리입니다.`;
+  if(both.length<3){ $("#uSlopeC").innerHTML='<div class="note">두 시점 모두 값이 있는 상품이 적습니다.</div>'; return; }
+  const bm0=new Map(prv.map(r=>[r.id,r]));
+  const rk2=(L,k)=>{const m=new Map(); [...L].sort((a,b)=>b[k]-a[k]).forEach((r,n)=>m.set(r.id,n+1)); return m;};
+  const R0=rk2(both.map(r=>bm0.get(r.id)),key), R1=rk2(both,key);
+  const n=both.length, rowH=22, Hs=n*rowH+34, Wd=520, xL=190, xR=330, Y=r=>26+(r-1)*rowH;
+  let s=`<text x="${xL}" y="12" text-anchor="middle" class="sl-h">${lab(p0)}</text><text x="${xR}" y="12" text-anchor="middle" class="sl-h">${lab(p1)}</text>`;
+  const sh=x=>esc(x.length>13?x.slice(0,12)+"…":x);
+  for(const r of [...both].sort((a,b)=>R0.get(a.id)-R0.get(b.id))){ const f=Math.abs(R0.get(r.id)-R1.get(r.id))>=3; s+=`<text x="${xL-10}" y="${Y(R0.get(r.id))+4}" text-anchor="end" class="sl-t ${f?'f':''}">${sh(r.label)}${r.type==="w"?" [랩]":""} <tspan class="sl-n">${R0.get(r.id)}</tspan></text>`; }
+  for(const r of [...both].sort((a,b)=>R1.get(a.id)-R1.get(b.id))){ const f=Math.abs(R0.get(r.id)-R1.get(r.id))>=3; s+=`<text x="${xR+10}" y="${Y(R1.get(r.id))+4}" class="sl-t ${f?'f':''}"><tspan class="sl-n">${R1.get(r.id)}</tspan> ${sh(r.label)}${r.type==="w"?" [랩]":""}</text>`; }
+  for(const r of both){ const a0=R0.get(r.id),a1=R1.get(r.id),d=a0-a1,f=Math.abs(d)>=3; const col=d>0?"var(--up)":d<0?"var(--down)":"var(--muted)"; const ring=r.type==="w"?"#1c6b3b":"#6b7785";
+    const tp=`<b>${esc(r.label)}</b> (${r.type==="a"?"일임":"랩"})<br>${a0}위 → ${a1}위`;
+    s+=`<line x1="${xL}" y1="${Y(a0)}" x2="${xR}" y2="${Y(a1)}" stroke="${col}" stroke-width="${f?3.2:1.4}" stroke-opacity="${f?1:.4}" stroke-linecap="round"/><circle cx="${xL}" cy="${Y(a0)}" r="${f?4.5:3}" fill="${col}" stroke="${ring}" stroke-width="1.6"/><circle cx="${xR}" cy="${Y(a1)}" r="${f?4.5:3}" fill="${col}" stroke="${ring}" stroke-width="1.6"/><line x1="${xL}" y1="${Y(a0)}" x2="${xR}" y2="${Y(a1)}" stroke="transparent" stroke-width="12" data-tip="${esc(tp)}"/>`; }
+  $("#uSlopeC").innerHTML=`<div class="slope" style="max-width:640px"><svg viewBox="0 0 ${Wd} ${Hs}" width="100%" role="img" aria-label="순위 이동">${s}</svg></div>`;
+}
+
+/* =============== 탭 =============== */
+let tabK="adv";
+function setTab(k,push){
+  tabK=k; for(const t of document.querySelectorAll(".tabs button")) t.setAttribute("aria-selected",String(t.dataset.k===k));
+  $("#pane-adv").hidden=k!=="adv"; $("#pane-wrap").hidden=k!=="wrap"; $("#pane-uni").hidden=k!=="uni";
+  if(push){ try{ history.replaceState(null,"","#"+k); }catch(e){} }
+}
+document.querySelector(".tabs").onclick=e=>{const b=e.target.closest("button"); if(b) setTab(b.dataset.k,true);};
+let init="uni"; try{ if(/wrap/.test(location.hash)) init="wrap"; else if(/adv/.test(location.hash)) init="adv"; }catch(e){}
+wAll(); aAll(); wChg(); aChg(); uAll(); setTab(init,false);
+
+</script>
+</body>
+</html>
